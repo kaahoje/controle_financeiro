@@ -1,0 +1,229 @@
+@model IEnumerable<GestorContas.Web.Models.Lancamento>
+@using GestorContas.Web.Models.Enums
+
+@{
+    ViewData["Title"] = "Lançamentos";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-5 fw-bold text-primary">
+                    <i class="bi bi-cash-stack"></i> Lançamentos Financeiros
+                </h1>
+                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm">
+                    <i class="bi bi-plus-circle"></i> Novo Lançamento
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["MensagemSucesso"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill"></i> @TempData["MensagemSucesso"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
+        </div>
+        <div class="card-body">
+            <form method="get" asp-action="Index">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Mês</label>
+                        <select name="mes" class="form-select" id="filtroMes">
+                            @foreach (var mes in ViewBag.Meses)
+                            {
+                                <option value="@mes.Id" selected="@(mes.Id == ViewBag.MesSelecionado)">@mes.Nome</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Ano</label>
+                        <select name="ano" class="form-select" id="filtroAno">
+                            @foreach (var ano in ViewBag.Anos)
+                            {
+                                <option value="@ano" selected="@(ano == ViewBag.AnoSelecionado)">@ano</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Categoria</label>
+                        <select name="categoriaId" class="form-select" id="filtroCategoria">
+                            <option value="">Todas</option>
+                            @foreach (var item in ViewBag.Categorias)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Tipo</label>
+                        <select name="tipo" class="form-select" id="filtroTipo">
+                            <option value="">Todos</option>
+                            @foreach (TipoLancamento tipo in ViewBag.Tipos)
+                            {
+                                <option value="@((int)tipo)">@tipo</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Conta</label>
+                        <select name="contaId" class="form-select" id="filtroConta">
+                            <option value="">Todas</option>
+                            @foreach (var item in ViewBag.Contas)
+                            {
+                                <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Filtrar
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle"></i> Limpar Filtros
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resumo Financeiro -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-success">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Entradas</h6>
+                    <h3 class="text-success fw-bold mb-0">
+                        <i class="bi bi-arrow-up-circle-fill"></i> @ViewBag.TotalEntradas.ToString("C")
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-danger">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Total de Saídas</h6>
+                    <h3 class="text-danger fw-bold mb-0">
+                        <i class="bi bi-arrow-down-circle-fill"></i> @ViewBag.TotalSaidas.ToString("C")
+                    </h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-primary">
+                <div class="card-body text-center">
+                    <h6 class="text-muted mb-2">Saldo do Período</h6>
+                    <h3 class="@(ViewBag.Saldo >= 0 ? "text-primary" : "text-danger") fw-bold mb-0">
+                        <i class="bi bi-wallet2"></i> @ViewBag.Saldo.ToString("C")
+                    </h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Lançamentos -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Lançamentos</h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Conta</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            @item.Data.ToString("dd/MM/yyyy")
+                                        </span>
+                                    </td>
+                                    <td class="fw-semibold">@item.Descricao</td>
+                                    <td>
+                                        <span class="badge bg-info">
+                                            @item.Categoria?.Nome
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="bi bi-wallet2"></i> @item.Conta?.Nome
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (item.Tipo == TipoLancamento.Entrada)
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-arrow-up"></i> Entrada
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-arrow-down"></i> Saída
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-end fw-bold @(item.Tipo == TipoLancamento.Entrada ? "text-success" : "text-danger")">
+                                        @item.Valor.ToString("C")
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Editar">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@item.Id" 
+                                               class="btn btn-sm btn-outline-danger" 
+                                               title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-inbox display-1 text-muted"></i>
+                    <p class="lead text-muted mt-3">Nenhum lançamento encontrado para o período selecionado.</p>
+                    <a asp-action="Create" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Criar Primeiro Lançamento
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+}

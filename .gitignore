@@ -1,0 +1,27 @@
+**/.vs/
+**/Logs*
+**/bin/
+**/obj/
+**/Educacenso/*.txt
+**/packages/
+**/UploadFolder/
+*.tmp
+**/ExecuteAntesDeRodarNoCliente/
+**/i-educar/
+*.bin
+*FolderProfile.pubxml.user
+**.user
+*.user
+**.db
+**.bin
+*hash.txt
+**hash.txt
+Prestação de contas/Educacao.Sagres.Web/NHibernate_hash.txt
+Prestação de contas/Educacao.Sagres.Web/NHibernate.bin
+/Prestação de contas/Educacao.Sagres.Web/Web.config
+/Prestação de contas/Educacao.Sagres.Web/Content/SAGRES
+/Prestação de contas/Educacao.Sagres.Web/Content/SAGRES
+/Educacao.Sagres.Web.AulaVirtual/node_modules
+/Educacao.Sagres.Web.AulaVirtual/educacao.sagres.web.aulavirtual.client/.vscode
+/Educacao.Sagres.Web.AulaVirtual/educacao.sagres.web.aulavirtual.client/node_modules
+Prestação de contas/Educacao.Sagres.Web/EducaTec.zip
