@@ -28,7 +28,7 @@ namespace GestorContas.Web.Models
         [DataType(DataType.Date)]
         [DisplayFormat(DataFormatString = "{0:dd/MM/yyyy}", ApplyFormatInEditMode = true)]
         [Display(Name = "Data")]
-        public DateTime Data { get; set; } = DateTime.Today;
+        public DateTime Data { get; set; } = DateTime.Now.Date;
 
         [Required(ErrorMessage = "O campo {0} é obrigatório")]
         [Display(Name = "Categoria")]
