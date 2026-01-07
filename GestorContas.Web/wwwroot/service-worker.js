@@ -1,12 +1,12 @@
 const CACHE_NAME = 'gestor-contas-cache-v1';
 const URLS_TO_CACHE = [
-    '/',
-    '/css/site.css',
-    '/js/site.js',
-    '/lib/bootstrap/dist/css/bootstrap.min.css',
-    '/lib/bootstrap/dist/js/bootstrap.bundle.min.js',
-    '/images/icon.svg',
-    '/manifest.json'
+    //'/',
+    //'/css/site.css',
+    //'/js/site.js',
+    //'/lib/bootstrap/dist/css/bootstrap.min.css',
+    //'/lib/bootstrap/dist/js/bootstrap.bundle.min.js',
+    //'/images/icon.svg',
+    //'/manifest.json'
 ];
 
 self.addEventListener('install', event => {

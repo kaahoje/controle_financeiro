@@ -107,6 +107,57 @@ public class HomeController : Controller
             }
         };
 
+        // 5. Gráfico de Evolução de Saldo (Últimos 6 meses)
+        var fimPeriodo = DateTime.Today;
+        var inicioPeriodo = fimPeriodo.AddMonths(-5); // 6 meses total
+        inicioPeriodo = new DateTime(inicioPeriodo.Year, inicioPeriodo.Month, 1);
+
+        var mesesLabels = new List<string>();
+        for (int i = 0; i < 6; i++)
+        {
+            mesesLabels.Add(inicioPeriodo.AddMonths(i).ToString("MMM/yyyy"));
+        }
+
+        dashboard.GraficoEvolucaoSaldo = new GraficoViewModel
+        {
+            Titulo = "Evolução do Saldo (Últimos 6 meses)",
+            Labels = mesesLabels,
+            Datasets = new List<DatasetViewModel>()
+        };
+
+        var coresGrafico = new List<string> { "#0d6efd", "#198754", "#dc3545", "#ffc107", "#0dcaf0", "#6610f2", "#fd7e14", "#20c997" };
+        int corIndex = 0;
+
+        foreach (var conta in contas)
+        {
+            var dataset = new DatasetViewModel
+            {
+                Label = conta.Nome,
+                Data = new List<decimal>(),
+                BorderColor = coresGrafico[corIndex % coresGrafico.Count],
+                BackgroundColor = coresGrafico[corIndex % coresGrafico.Count],
+                Fill = false
+            };
+            corIndex++;
+
+            for (int i = 0; i < 6; i++)
+            {
+                var dataReferencia = inicioPeriodo.AddMonths(i + 1).AddDays(-1); // Último dia do mês
+
+                var totalEntradas = conta.Lancamentos?
+                    .Where(l => l.Tipo == TipoLancamento.Entrada && l.Data <= dataReferencia)
+                    .Sum(l => l.Valor) ?? 0;
+
+                var totalSaidas = conta.Lancamentos?
+                    .Where(l => l.Tipo == TipoLancamento.Saida && l.Data <= dataReferencia)
+                    .Sum(l => l.Valor) ?? 0;
+
+                dataset.Data.Add(conta.SaldoInicial + totalEntradas - totalSaidas);
+            }
+
+            dashboard.GraficoEvolucaoSaldo.Datasets.Add(dataset);
+        }
+
         return View(dashboard);
     }
 

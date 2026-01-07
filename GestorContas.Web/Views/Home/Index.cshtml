@@ -153,6 +153,22 @@
             </div>
         </div>
     </div>
+
+    <!-- Gráfico Evolução de Saldo -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white pt-3">
+                    <h5 class="card-title fw-bold mb-0">@Model.GraficoEvolucaoSaldo.Titulo</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 400px;">
+                        <canvas id="chartEvolucaoSaldo"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -221,6 +237,38 @@
                                 usePointStyle: true,
                                 padding: 20
                             }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Gráfico Evolução de Saldo
+        const ctxEvolucao = document.getElementById('chartEvolucaoSaldo');
+        if (ctxEvolucao) {
+            new Chart(ctxEvolucao, {
+                type: 'line',
+                data: {
+                    labels: @Json.Serialize(Model.GraficoEvolucaoSaldo.Labels),
+                    datasets: @Json.Serialize(Model.GraficoEvolucaoSaldo.Datasets)
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            grid: { color: '#f0f0f0' }
+                        },
+                        x: {
+                            grid: { display: false }
                         }
                     }
                 }
