@@ -55,9 +55,13 @@ public class HomeController : Controller
         var ultimoDiaMes = primeiroDiaMes.AddMonths(1).AddDays(-1);
 
         var lancamentosMes = await _context.Lancamentos
+            .Include(l => l.Categoria)
+            
             .Where(l => l.Data >= primeiroDiaMes && l.Data <= ultimoDiaMes)
             .ToListAsync();
-
+        lancamentosMes = lancamentosMes
+            .Where(x => x.Categoria?.ParaTransferencia == false)
+            .ToList();
         dashboard.ResumoMensal = new ResumoMensalViewModel
         {
             MesAno = primeiroDiaMes,
@@ -85,6 +89,7 @@ public class HomeController : Controller
         // 4. Gráfico de Despesas por Categoria (Mês Atual)
         var gastosPorCategoria = _context.Lancamentos
             .Include(l => l.Categoria)
+            .Where(l=>!l.Categoria.ParaTransferencia)
             .Where(l => l.Tipo == TipoLancamento.Saida && 
                        l.Data >= primeiroDiaMes && 
                        l.Data <= ultimoDiaMes)

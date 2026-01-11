@@ -13,6 +13,9 @@ namespace GestorContas.Web.Models
         [Display(Name = "Nome")]
         public string Nome { get; set; }
 
+        [Display(Name = "Transferência Interna?")]
+        public bool ParaTransferencia { get; set; }
+
         // Navigation property
         public ICollection<Lancamento>? Lancamentos { get; set; }
     }

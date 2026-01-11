@@ -66,13 +66,13 @@ namespace GestorContas.Web.Controllers
         // POST: Categorias/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome")] Categoria categoria)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,ParaTransferencia")] Categoria categoria)
         {
             if (id != categoria.Id)
             {
                 return NotFound();
             }
-
+            
             if (ModelState.IsValid)
             {
                 try

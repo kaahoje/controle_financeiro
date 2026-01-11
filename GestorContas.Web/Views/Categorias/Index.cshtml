@@ -56,6 +56,12 @@
                                 <tr>
                                     <td class="fw-semibold">
                                         <i class="bi bi-tag-fill text-primary"></i> @item.Nome
+                                        @if (item.ParaTransferencia)
+                                        {
+                                            <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
+                                                <i class="bi bi-arrow-left-right"></i> Transferência
+                                            </span>
+                                        }
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group" role="group">
