@@ -1,4 +1,4 @@
-﻿@model GestorContas.Web.Models.ViewModels.DashboardViewModel
+@model GestorContas.Web.Models.ViewModels.DashboardViewModel
 
 @{
     ViewData["Title"] = "Dashboard";
@@ -179,6 +179,43 @@
     <script>
         // Configuração comum
         Chart.defaults.font.family = "'Segoe UI', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
+
+        const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+
+        // Plugin para escrever valores em cima das barras
+        const valueLabelPlugin = {
+            id: 'valueLabelPlugin',
+            afterDatasetsDraw(chart, args, pluginOptions) {
+                const { ctx } = chart;
+                ctx.save();
+
+                const color = pluginOptions?.color ?? '#212529';
+                const formatter = pluginOptions?.formatter ?? ((v) => String(v));
+
+                chart.data.datasets.forEach((dataset, datasetIndex) => {
+                    const meta = chart.getDatasetMeta(datasetIndex);
+                    if (meta.hidden) return;
+
+                    meta.data.forEach((element, index) => {
+                        const value = dataset.data[index];
+                        if (value === null || value === undefined) return;
+
+                        const pos = element.tooltipPosition();
+                        const text = formatter(value);
+
+                        ctx.fillStyle = color;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'bottom';
+                        ctx.font = `12px ${Chart.defaults.font.family}`;
+                        ctx.fillText(text, pos.x, pos.y - 6);
+                    });
+                });
+
+                ctx.restore();
+            }
+        };
+
+        Chart.register(valueLabelPlugin);
         
         // Gráfico Fluxo de Caixa
         const ctxFluxo = document.getElementById('chartFluxoCaixa');
@@ -198,7 +235,8 @@
                 options: {
                     responsive: true,
                     plugins: {
-                        legend: { display: false }
+                        legend: { display: false },
+                        valueLabelPlugin: { formatter: (v) => brl.format(v) }
                     },
                     scales: {
                         y: {
@@ -216,26 +254,57 @@
         // Gráfico Despesas por Categoria
         const ctxDespesas = document.getElementById('chartDespesas');
         if (ctxDespesas) {
+            const despesasLabels = @Json.Serialize(Model.GraficoDespesas.Labels);
+            const despesasValores = @Json.Serialize(Model.GraficoDespesas.Valores);
+            const despesasCores = @Json.Serialize(Model.GraficoDespesas.Cores);
+
+            // Ajusta altura para não "encostar" barras (1 barra por linha)
+            const minHeight = 260;
+            const rowHeight = 44; // altura por categoria (inclui espaçamento)
+            const desiredHeight = Math.max(minHeight, (despesasLabels?.length ?? 0) * rowHeight);
+            if (ctxDespesas.parentElement) {
+                ctxDespesas.parentElement.style.height = `${desiredHeight}px`;
+            }
+
             new Chart(ctxDespesas, {
-                type: 'doughnut',
+                type: 'bar',
                 data: {
-                    labels: @Json.Serialize(Model.GraficoDespesas.Labels),
+                    labels: despesasLabels,
                     datasets: [{
-                        data: @Json.Serialize(Model.GraficoDespesas.Valores),
-                        backgroundColor: @Json.Serialize(Model.GraficoDespesas.Cores),
-                        borderWidth: 0,
-                        hoverOffset: 4
+                        label: 'Total (R$)',
+                        data: despesasValores,
+                        backgroundColor: despesasCores,
+                        borderRadius: 8,
+                        // garante espaço entre barras (sem contato/sem sobreposição)
+                        categoryPercentage: 0.72,
+                        barPercentage: 0.78
                     }]
                 },
                 options: {
                     responsive: true,
-                    cutout: '70%',
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                usePointStyle: true,
-                                padding: 20
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => brl.format(context.parsed.x)
+                            }
+                        },
+                        valueLabelPlugin: { formatter: (v) => brl.format(v) }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: '#f0f0f0' },
+                            ticks: {
+                                callback: (value) => brl.format(value)
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                autoSkip: false
                             }
                         }
                     }
