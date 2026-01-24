@@ -20,7 +20,7 @@ namespace GestorContas.Web.Controllers
         }
 
         // GET: Lancamentos
-        public async Task<IActionResult> Index(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo)
+        public async Task<IActionResult> Index(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia)
         {
             var dataAtual = DateTime.Today;
             var mesAtual = mes ?? dataAtual.Month;
@@ -58,9 +58,16 @@ namespace GestorContas.Web.Controllers
             {
                 query = query.Where(l => l.Tipo == tipo.Value);
             }
+            if (paraTransferencia.HasValue)
+            {
+                query = query.Where(l => l.Categoria.ParaTransferencia == paraTransferencia.Value);
+            }
 
-            var lancamentos = await query.OrderByDescending(l => l.Data).ThenBy(l => l.Descricao).ToListAsync();
-            
+            var lancamentos = await query
+                
+                .OrderByDescending(l => l.Data)
+                .ThenBy(l => l.Descricao).ToListAsync();
+
             // Calcular totais
             ViewBag.TotalEntradas = lancamentos.Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);
             ViewBag.TotalSaidas = lancamentos.Where(l => l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor);
@@ -160,7 +167,7 @@ namespace GestorContas.Web.Controllers
                 .Include(l => l.Categoria)
                 .Include(l => l.Conta)
                 .FirstOrDefaultAsync(m => m.Id == id);
-                
+
             if (lancamento == null)
             {
                 return NotFound();

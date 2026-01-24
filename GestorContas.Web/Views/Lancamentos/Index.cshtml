@@ -83,6 +83,14 @@
                             }
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Transferência/Pagamento/Receita</label>
+                        <select name="paraTransferencia" class="form-select" id="filtroparaTransferencia">
+                            <option value="">Todas</option>
+                            <option value="@true">Transferência entre contas</option>
+                            <option value="@false">Pagamentos/Receitas</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
@@ -164,9 +172,26 @@
                                     </td>
                                     <td class="fw-semibold">@item.Descricao</td>
                                     <td>
-                                        <span class="badge bg-info">
-                                            @item.Categoria?.Nome
-                                        </span>
+                                        <table>
+                                            <tr>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        @item.Categoria?.Nome
+
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    @if (item.Categoria?.ParaTransferencia == true)
+                                                    {
+                                                        <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
+                                                            <i class="bi bi-arrow-left-right"></i>
+                                                        </span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        
+                                        
                                     </td>
                                     <td>
                                         <span class="badge bg-warning text-dark">
