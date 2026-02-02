@@ -11,9 +11,47 @@
             <h1 class="display-5 fw-bold text-primary">
                 <i class="bi bi-speedometer2"></i> Dashboard Financeiro
             </h1>
-            <p class="lead text-muted">
-                Resumo financeiro de <strong>@Model.ResumoMensal.MesAno.ToString("MMMM/yyyy")</strong>
-            </p>
+            <div class="d-flex justify-content-between align-items-center">
+                <p class="lead text-muted mb-0">
+                    Resumo financeiro de <strong>@Model.ResumoMensal.MesAno.ToString("MMMM/yyyy")</strong>
+                </p>
+
+                <!-- Seletor de Período -->
+                <form method="get" asp-action="Index" class="d-flex gap-2 align-items-end">
+                    <div>
+                        <label class="form-label fw-bold mb-1 small">Mês</label>
+                        <select name="mes" class="form-select form-select-sm" style="min-width: 120px;">
+                            <option value="1" selected="@(ViewBag.MesSelecionado == 1)">Janeiro</option>
+                            <option value="2" selected="@(ViewBag.MesSelecionado == 2)">Fevereiro</option>
+                            <option value="3" selected="@(ViewBag.MesSelecionado == 3)">Março</option>
+                            <option value="4" selected="@(ViewBag.MesSelecionado == 4)">Abril</option>
+                            <option value="5" selected="@(ViewBag.MesSelecionado == 5)">Maio</option>
+                            <option value="6" selected="@(ViewBag.MesSelecionado == 6)">Junho</option>
+                            <option value="7" selected="@(ViewBag.MesSelecionado == 7)">Julho</option>
+                            <option value="8" selected="@(ViewBag.MesSelecionado == 8)">Agosto</option>
+                            <option value="9" selected="@(ViewBag.MesSelecionado == 9)">Setembro</option>
+                            <option value="10" selected="@(ViewBag.MesSelecionado == 10)">Outubro</option>
+                            <option value="11" selected="@(ViewBag.MesSelecionado == 11)">Novembro</option>
+                            <option value="12" selected="@(ViewBag.MesSelecionado == 12)">Dezembro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label fw-bold mb-1 small">Ano</label>
+                        <select name="ano" class="form-select form-select-sm" style="min-width: 100px;">
+                            @for (int ano = DateTime.Today.Year; ano >= DateTime.Today.Year - 5; ano--)
+                            {
+                                <option value="@ano" selected="@(ViewBag.AnoSelecionado == ano)">@ano</option>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-arrow-clockwise"></i> Mês Atual
+                    </a>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -216,7 +254,7 @@
         };
 
         Chart.register(valueLabelPlugin);
-        
+
         // Gráfico Fluxo de Caixa
         const ctxFluxo = document.getElementById('chartFluxoCaixa');
         if (ctxFluxo) {

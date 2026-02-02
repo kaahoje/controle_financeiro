@@ -19,9 +19,18 @@ public class HomeController : Controller
         _context = context;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(int? mes, int? ano)
     {
         var dashboard = new DashboardViewModel();
+        
+        // Determinar mês/ano a exibir
+        var mesReferencia = mes ?? DateTime.Today.Month;
+        var anoReferencia = ano ?? DateTime.Today.Year;
+        var dataReferencia = new DateTime(anoReferencia, mesReferencia, 1);
+        
+        // Passar para ViewBag para o seletor
+        ViewBag.MesSelecionado = mesReferencia;
+        ViewBag.AnoSelecionado = anoReferencia;
         
         // 1. Calcular saldos das contas (Saldo Inicial + Entradas - Saídas)
         var contas = await _context.Contas
@@ -49,19 +58,19 @@ public class HomeController : Controller
             });
         }
 
-        // 2. Resumo do Mês Atual
-        var hoje = DateTime.Today;
-        var primeiroDiaMes = new DateTime(hoje.Year, hoje.Month, 1);
+        // 2. Resumo do Mês Selecionado
+        var primeiroDiaMes = dataReferencia;
         var ultimoDiaMes = primeiroDiaMes.AddMonths(1).AddDays(-1);
 
         var lancamentosMes = await _context.Lancamentos
             .Include(l => l.Categoria)
-            
             .Where(l => l.Data >= primeiroDiaMes && l.Data <= ultimoDiaMes)
             .ToListAsync();
+        
         lancamentosMes = lancamentosMes
             .Where(x => x.Categoria?.ParaTransferencia == false)
             .ToList();
+        
         dashboard.ResumoMensal = new ResumoMensalViewModel
         {
             MesAno = primeiroDiaMes,
@@ -73,10 +82,10 @@ public class HomeController : Controller
                 .Sum(l => l.Valor)
         };
 
-        // 3. Gráfico de Entradas x Saídas (Mês Atual)
+        // 3. Gráfico de Entradas x Saídas (Mês Selecionado)
         dashboard.GraficoFluxoCaixa = new GraficoViewModel
         {
-            Titulo = "Fluxo de Caixa (Mês Atual)",
+            Titulo = "Fluxo de Caixa (Mês Selecionado)",
             Labels = new List<string> { "Entradas", "Saídas" },
             Valores = new List<decimal> 
             { 
@@ -86,10 +95,10 @@ public class HomeController : Controller
             Cores = new List<string> { "#198754", "#dc3545" } // Success (Green), Danger (Red)
         };
 
-        // 4. Gráfico de Despesas por Categoria (Mês Atual)
+        // 4. Gráfico de Despesas por Categoria (Mês Selecionado)
         var gastosPorCategoria = _context.Lancamentos
             .Include(l => l.Categoria)
-            .Where(l=>!l.Categoria.ParaTransferencia)
+            .Where(l => !l.Categoria.ParaTransferencia)
             .Where(l => l.Tipo == TipoLancamento.Saida && 
                        l.Data >= primeiroDiaMes && 
                        l.Data <= ultimoDiaMes)
@@ -147,14 +156,14 @@ public class HomeController : Controller
 
             for (int i = 0; i < 6; i++)
             {
-                var dataReferencia = inicioPeriodo.AddMonths(i + 1).AddDays(-1); // Último dia do mês
+                var dataReferenciaEvolucao = inicioPeriodo.AddMonths(i + 1).AddDays(-1); // Último dia do mês
 
                 var totalEntradas = conta.Lancamentos?
-                    .Where(l => l.Tipo == TipoLancamento.Entrada && l.Data <= dataReferencia)
+                    .Where(l => l.Tipo == TipoLancamento.Entrada && l.Data <= dataReferenciaEvolucao)
                     .Sum(l => l.Valor) ?? 0;
 
                 var totalSaidas = conta.Lancamentos?
-                    .Where(l => l.Tipo == TipoLancamento.Saida && l.Data <= dataReferencia)
+                    .Where(l => l.Tipo == TipoLancamento.Saida && l.Data <= dataReferenciaEvolucao)
                     .Sum(l => l.Valor) ?? 0;
 
                 dataset.Data.Add(conta.SaldoInicial + totalEntradas - totalSaidas);
