@@ -33,7 +33,7 @@
             <h5 class="mb-0"><i class="bi bi-funnel"></i> Filtros</h5>
         </div>
         <div class="card-body">
-            <form method="get" asp-action="Index">
+            <form id="formCadastro" method="get" asp-action="Index">
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Mês</label>
@@ -94,9 +94,34 @@
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary">
+                        <button type="button" class="btn btn-primary"
+                                onclick="Filtrar()">
                             <i class="bi bi-search"></i> Filtrar
                         </button>
+                        <script>
+                            function Filtrar() {
+                                const form = document.getElementById('formCadastro');
+                                const formData = new FormData(form);
+
+                                fetch(window.location.pathname, {
+                                    method: 'POST',
+                                    body: formData
+                                })
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error('Erro na requisição');
+                                        }
+                                        return response.text();
+                                    })
+                                    .then(html => {
+                                        document.getElementById('indexFiltrada').innerHTML = $("#indexFiltrada", $(html)).html();
+                                    })
+                                    .catch(error => {
+                                        console.error('Erro ao filtrar:', error);
+                                        alert('Ocorreu um erro ao aplicar os filtros. Tente novamente.');
+                                    });
+                            }
+                        </script>
                         <a asp-action="Index" class="btn btn-outline-secondary">
                             <i class="bi bi-x-circle"></i> Limpar Filtros
                         </a>
@@ -105,148 +130,150 @@
             </form>
         </div>
     </div>
+    <div id="indexFiltrada">
+        <!-- Resumo Financeiro -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-success">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Total de Entradas</h6>
+                        <h3 class="text-success fw-bold mb-0">
+                            <i class="bi bi-arrow-up-circle-fill"></i> @ViewBag.TotalEntradas.ToString("C")
+                        </h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-danger">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Total de Saídas</h6>
+                        <h3 class="text-danger fw-bold mb-0">
+                            <i class="bi bi-arrow-down-circle-fill"></i> @ViewBag.TotalSaidas.ToString("C")
+                        </h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted mb-2">Saldo do Período</h6>
+                        <h3 class="@(ViewBag.Saldo >= 0 ? "text-primary" : "text-danger") fw-bold mb-0">
+                            <i class="bi bi-wallet2"></i> @ViewBag.Saldo.ToString("C")
+                        </h3>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-    <!-- Resumo Financeiro -->
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card shadow-sm border-success">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Total de Entradas</h6>
-                    <h3 class="text-success fw-bold mb-0">
-                        <i class="bi bi-arrow-up-circle-fill"></i> @ViewBag.TotalEntradas.ToString("C")
-                    </h3>
-                </div>
+        <!-- Tabela de Lançamentos -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Lançamentos</h5>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm border-danger">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Total de Saídas</h6>
-                    <h3 class="text-danger fw-bold mb-0">
-                        <i class="bi bi-arrow-down-circle-fill"></i> @ViewBag.TotalSaidas.ToString("C")
-                    </h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm border-primary">
-                <div class="card-body text-center">
-                    <h6 class="text-muted mb-2">Saldo do Período</h6>
-                    <h3 class="@(ViewBag.Saldo >= 0 ? "text-primary" : "text-danger") fw-bold mb-0">
-                        <i class="bi bi-wallet2"></i> @ViewBag.Saldo.ToString("C")
-                    </h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabela de Lançamentos -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Lançamentos</h5>
-        </div>
-        <div class="card-body p-0">
-            @if (Model.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Data</th>
-                                <th>Descrição</th>
-                                <th>Categoria</th>
-                                <th>Conta</th>
-                                <th>Tipo</th>
-                                <th class="text-end">Valor</th>
-                                <th class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
+            <div class="card-body p-0">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <td>
-                                        <span class="badge bg-secondary">
-                                            @item.Data.ToString("dd/MM/yyyy")
-                                        </span>
-                                    </td>
-                                    <td class="fw-semibold">@item.Descricao</td>
-                                    <td>
-                                        <table>
-                                            <tr>
-                                                <td>
-                                                    <span class="badge bg-info">
-                                                        @item.Categoria?.Nome
-
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    @if (item.Categoria?.ParaTransferencia == true)
-                                                    {
-                                                        <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
-                                                            <i class="bi bi-arrow-left-right"></i>
-                                                        </span>
-                                                    }
-                                                </td>
-                                            </tr>
-                                        </table>
-                                        
-                                        
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-warning text-dark">
-                                            <i class="bi bi-wallet2"></i> @item.Conta?.Nome
-                                        </span>
-                                    </td>
-                                    <td>
-                                        @if (item.Tipo == TipoLancamento.Entrada)
-                                        {
-                                            <span class="badge bg-success">
-                                                <i class="bi bi-arrow-up"></i> Entrada
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger">
-                                                <i class="bi bi-arrow-down"></i> Saída
-                                            </span>
-                                        }
-                                    </td>
-                                    <td class="text-end fw-bold @(item.Tipo == TipoLancamento.Entrada ? "text-success" : "text-danger")">
-                                        @item.Valor.ToString("C")
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <a asp-action="Edit" asp-route-id="@item.Id" 
-                                               class="btn btn-sm btn-outline-primary" 
-                                               title="Editar">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <a asp-action="Delete" asp-route-id="@item.Id" 
-                                               class="btn btn-sm btn-outline-danger" 
-                                               title="Excluir">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
+                                    <th>Data</th>
+                                    <th>Descrição</th>
+                                    <th>Categoria</th>
+                                    <th>Conta</th>
+                                    <th>Tipo</th>
+                                    <th class="text-end">Valor</th>
+                                    <th class="text-center">Ações</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox display-1 text-muted"></i>
-                    <p class="lead text-muted mt-3">Nenhum lançamento encontrado para o período selecionado.</p>
-                    <a asp-action="Create" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Criar Primeiro Lançamento
-                    </a>
-                </div>
-            }
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                @item.Data.ToString("dd/MM/yyyy")
+                                            </span>
+                                        </td>
+                                        <td class="fw-semibold">@item.Descricao</td>
+                                        <td>
+                                            <table>
+                                                <tr>
+                                                    <td>
+                                                        <span class="badge bg-info">
+                                                            @item.Categoria?.Nome
+
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        @if (item.Categoria?.ParaTransferencia == true)
+                                                        {
+                                                            <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
+                                                                <i class="bi bi-arrow-left-right"></i>
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-wallet2"></i> @item.Conta?.Nome
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (item.Tipo == TipoLancamento.Entrada)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-arrow-up"></i> Entrada
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">
+                                                    <i class="bi bi-arrow-down"></i> Saída
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-end fw-bold @(item.Tipo == TipoLancamento.Entrada ? "text-success" : "text-danger")">
+                                            @item.Valor.ToString("C")
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <a asp-action="Edit" asp-route-id="@item.Id"
+                                                   class="btn btn-sm btn-outline-primary"
+                                                   title="Editar">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                                <a asp-action="Delete" asp-route-id="@item.Id"
+                                                   class="btn btn-sm btn-outline-danger"
+                                                   title="Excluir">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="lead text-muted mt-3">Nenhum lançamento encontrado para o período selecionado.</p>
+                        <a asp-action="Create" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Criar Primeiro Lançamento
+                        </a>
+                    </div>
+                }
+            </div>
         </div>
     </div>
+
 </div>
 
 @section Scripts {
