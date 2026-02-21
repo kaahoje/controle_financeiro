@@ -66,7 +66,7 @@ namespace GestorContas.Web.Controllers
                 gridQuery = gridQuery.Where(p => p.Entrada == tipo.Value);
             }
 
-            var prefeiturasList = await gridQuery.OrderBy(p => p.VencimentoDaParcela).ToListAsync();
+            var prefeiturasList = await gridQuery.OrderByDescending(p => p.Entrada).ThenBy(p => p.VencimentoDaParcela).ToListAsync();
 
             if (IsAjaxRequest)
                 return PartialView("_GridPrefeituras", prefeiturasList);

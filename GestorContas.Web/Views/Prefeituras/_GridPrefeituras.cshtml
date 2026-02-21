@@ -37,13 +37,13 @@
 <div class="card shadow-sm">
     <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-list-ul"></i> Detalhamento das Prefeituras</h5>
-        <span class="badge bg-primary">@Model.Count() registros</span>
+        <span class="badge bg-primary">@Model.Count() registros no mês</span>
     </div>
     <div class="card-body p-0">
         @if (Model.Any())
         {
             <div class="table-responsive">
-                <table class="table table-hover table-striped mb-0">
+                <table class="table table-hover mb-0">
                     <thead class="table-dark">
                         <tr>
                             <th>Data Vencimento</th>
@@ -54,51 +54,64 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var item in Model)
+                        @{
+                            var grupos = Model.GroupBy(p => p.Entrada).OrderByDescending(g => g.Key);
+                        }
+
+                        @foreach (var grupo in grupos)
                         {
-                            <tr>
-                                <td class="fw-bold">
-                                    <span class="badge bg-secondary">
-                                        @(item.VencimentoDaParcela?.ToString("dd/MM/yyyy") ?? "-")
-                                    </span>
+                            <tr class="@(grupo.Key == true ? "table-success text-success" : "table-danger text-danger") fw-bold">
+                                <td colspan="5">
+                                    <i class="bi @(grupo.Key == true ? "bi-arrow-up-circle-fill" : "bi-arrow-down-circle-fill")"></i>
+                                    @(grupo.Key == true ? "RECEBIMENTOS" : "PAGAMENTOS")
                                 </td>
-                                <td class="fw-semibold">@item.Descricao</td>
-                                <td class="text-end fw-bold @(item.Entrada == true ? "text-success" : "text-danger")">
-                                    @(item.Valor?.ToString("C") ?? "-")
-                                </td>
-                                <td class="text-center">
-                                    @if (item.Entrada == true)
-                                    {
-                                        <span class="badge bg-success">
-                                            <i class="bi bi-arrow-up"></i> Recebimento
+                            </tr>
+
+                            @foreach (var item in grupo)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            @(item.VencimentoDaParcela?.ToString("dd/MM/yyyy") ?? "-")
                                         </span>
-                                    }
-                                    else if (item.Entrada == false)
-                                    {
-                                        <span class="badge bg-danger">
-                                            <i class="bi bi-arrow-down"></i> Pagamento
-                                        </span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-secondary">Não definido</span>
-                                    }
+                                    </td>
+                                    <td class="fw-semibold">@item.Descricao</td>
+                                    <td class="text-end fw-bold @(item.Entrada == true ? "text-success" : "text-danger")">
+                                        @(item.Valor?.ToString("C") ?? "-")
+                                    </td>
+                                    <td class="text-center">
+                                        @if (item.Entrada == true)
+                                        {
+                                            <span class="badge bg-success">Recebimento</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger">Pagamento</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a asp-action="Edit" asp-route-id="@item.Id" 
+                                               class="btn btn-sm btn-outline-primary btn-modal" 
+                                               title="Editar">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <a asp-action="Delete" asp-route-id="@item.Id" 
+                                               class="btn btn-sm btn-outline-danger btn-modal" 
+                                               title="Excluir">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+
+                            <tr class="bg-light fw-bold text-end">
+                                <td colspan="2" class="text-end text-muted">Subtotal @(grupo.Key == true ? "Recebimentos" : "Pagamentos"):</td>
+                                <td class="text-end @(grupo.Key == true ? "text-success" : "text-danger")" style="font-size: 1.1rem;">
+                                    @grupo.Sum(p => p.Valor ?? 0).ToString("C")
                                 </td>
-                                
-                                <td class="text-center">
-                                    <div class="btn-group" role="group">
-                                        <a asp-action="Edit" asp-route-id="@item.Id" 
-                                           class="btn btn-sm btn-outline-primary btn-modal" 
-                                           title="Editar">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@item.Id" 
-                                           class="btn btn-sm btn-outline-danger btn-modal" 
-                                           title="Excluir">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
+                                <td colspan="2"></td>
                             </tr>
                         }
                     </tbody>
