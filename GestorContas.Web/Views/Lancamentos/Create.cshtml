@@ -33,7 +33,7 @@
                 <!-- Data -->
                 <div class="col-md-6">
                     <div class="form-floating">
-                        <input asp-for="Data" class="form-control" id="modal_data" type="date" />
+                        <input asp-for="Data" asp-format="{0:yyyy-MM-dd}" class="form-control" id="modal_data" type="date" />
                         <label asp-for="Data"><i class="bi bi-calendar-event"></i> Data</label>
                         <span asp-validation-for="Data" class="text-danger small"></span>
                     </div>
@@ -87,11 +87,6 @@
     </div>
     <script>
         (function() {
-            const dataInput = document.getElementById('modal_data');
-            if (dataInput && !dataInput.value) {
-                const today = new Date();
-                dataInput.value = today.toISOString().split('T')[0];
-            }
             const tipoSelect = document.getElementById('modal_tipo');
             const valorInput = document.getElementById('modal_valor');
             if (tipoSelect) {
@@ -138,7 +133,7 @@ else
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input asp-for="Data" class="form-control" id="data" type="date" />
+                                        <input asp-for="Data" asp-format="{0:yyyy-MM-dd}" class="form-control" id="data" type="date" />
                                         <label asp-for="Data"><i class="bi bi-calendar-event"></i> Data</label>
                                         <span asp-validation-for="Data" class="text-danger small"></span>
                                     </div>
@@ -191,15 +186,7 @@ else
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     
     <script>
-        // Formatar o campo de data para o formato correto
         document.addEventListener('DOMContentLoaded', function() {
-            const dataInput = document.getElementById('data');
-            if (dataInput && !dataInput.value) {
-                const today = new Date();
-                const formattedDate = today.toISOString().split('T')[0];
-                dataInput.value = formattedDate;
-            }
-
             // Adicionar feedback visual ao tipo de lançamento
             const tipoSelect = document.getElementById('tipo');
             tipoSelect.addEventListener('change', function() {
