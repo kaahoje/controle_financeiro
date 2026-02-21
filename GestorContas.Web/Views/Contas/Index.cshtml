@@ -11,7 +11,7 @@
                 <h1 class="display-5 fw-bold text-primary">
                     <i class="bi bi-wallet2"></i> Contas e Formas de Pagamento
                 </h1>
-                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm">
+                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm btn-modal" title="Nova Conta">
                     <i class="bi bi-plus-circle"></i> Nova Conta
                 </a>
             </div>
@@ -35,81 +35,90 @@
     }
 
     <!-- Tabela de Contas -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Contas</h5>
-        </div>
-        <div class="card-body p-0">
-            @if (Model.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Nome</th>
-                                <th>Descrição</th>
-                                <th class="text-end">Saldo Inicial</th>
-                                <th class="text-center">Status</th>
-                                <th class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
+    <div id="gridContainer">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Contas</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <td class="fw-semibold">
-                                        <i class="bi bi-wallet-fill text-primary"></i> @item.Nome
-                                    </td>
-                                    <td class="text-muted">@(item.Descricao ?? "-")</td>
-                                    <td class="text-end fw-bold">@item.SaldoInicial.ToString("C")</td>
-                                    <td class="text-center">
-                                        @if (item.Ativa)
-                                        {
-                                            <span class="badge bg-success">
-                                                <i class="bi bi-check-circle"></i> Ativa
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-secondary">
-                                                <i class="bi bi-x-circle"></i> Inativa
-                                            </span>
-                                        }
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <a asp-action="Edit" asp-route-id="@item.Id" 
-                                               class="btn btn-sm btn-outline-primary" 
-                                               title="Editar">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <a asp-action="Delete" asp-route-id="@item.Id" 
-                                               class="btn btn-sm btn-outline-danger" 
-                                               title="Excluir">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
+                                    <th>Nome</th>
+                                    <th>Descrição</th>
+                                    <th class="text-end">Saldo Inicial</th>
+                                    <th class="text-center">Status</th>
+                                    <th class="text-center">Ações</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox display-1 text-muted"></i>
-                    <p class="lead text-muted mt-3">Nenhuma conta cadastrada.</p>
-                    <a asp-action="Create" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Criar Primeira Conta
-                    </a>
-                </div>
-            }
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">
+                                            <i class="bi bi-wallet-fill text-primary"></i> @item.Nome
+                                        </td>
+                                        <td class="text-muted">@(item.Descricao ?? "-")</td>
+                                        <td class="text-end fw-bold">@item.SaldoInicial.ToString("C")</td>
+                                        <td class="text-center">
+                                            @if (item.Ativa)
+                                            {
+                                                <span class="badge bg-success">
+                                                    <i class="bi bi-check-circle"></i> Ativa
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    <i class="bi bi-x-circle"></i> Inativa
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <a asp-action="Edit" asp-route-id="@item.Id" 
+                                                   class="btn btn-sm btn-outline-primary btn-modal" 
+                                                   title="Editar Conta">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                                <a asp-action="Delete" asp-route-id="@item.Id" 
+                                                   class="btn btn-sm btn-outline-danger btn-modal" 
+                                                   title="Excluir Conta">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="lead text-muted mt-3">Nenhuma conta cadastrada.</p>
+                        <a asp-action="Create" class="btn btn-primary btn-modal" title="Criar Primeira Conta">
+                            <i class="bi bi-plus-circle"></i> Criar Primeira Conta
+                        </a>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script>
+        function Filtrar() {
+            $.get(window.location.href, function (data) {
+                $('#gridContainer').html($(data).find('#gridContainer').html());
+            });
+        }
+    </script>
 }

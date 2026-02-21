@@ -11,7 +11,7 @@
                 <h1 class="display-5 fw-bold text-primary">
                     <i class="bi bi-tags-fill"></i> Categorias
                 </h1>
-                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm">
+                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm btn-modal" title="Nova Categoria">
                     <i class="bi bi-plus-circle"></i> Nova Categoria
                 </a>
             </div>
@@ -35,68 +35,77 @@
     }
 
     <!-- Tabela de Categorias -->
-    <div class="card shadow-sm">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Categorias</h5>
-        </div>
-        <div class="card-body p-0">
-            @if (Model.Any())
-            {
-                <div class="table-responsive">
-                    <table class="table table-hover table-striped mb-0">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Nome</th>
-                                <th class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
+    <div id="gridContainer">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-list-ul"></i> Lista de Categorias</h5>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-dark">
                                 <tr>
-                                    <td class="fw-semibold">
-                                        <i class="bi bi-tag-fill text-primary"></i> @item.Nome
-                                        @if (item.ParaTransferencia)
-                                        {
-                                            <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
-                                                <i class="bi bi-arrow-left-right"></i> Transferência
-                                            </span>
-                                        }
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <a asp-action="Edit" asp-route-id="@item.Id" 
-                                               class="btn btn-sm btn-outline-primary" 
-                                               title="Editar">
-                                                <i class="bi bi-pencil-square"></i>
-                                            </a>
-                                            <a asp-action="Delete" asp-route-id="@item.Id" 
-                                               class="btn btn-sm btn-outline-danger" 
-                                               title="Excluir">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </div>
-                                    </td>
+                                    <th>Nome</th>
+                                    <th class="text-center">Ações</th>
                                 </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            }
-            else
-            {
-                <div class="text-center py-5">
-                    <i class="bi bi-inbox display-1 text-muted"></i>
-                    <p class="lead text-muted mt-3">Nenhuma categoria cadastrada.</p>
-                    <a asp-action="Create" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Criar Primeira Categoria
-                    </a>
-                </div>
-            }
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">
+                                            <i class="bi bi-tag-fill text-primary"></i> @item.Nome
+                                            @if (item.ParaTransferencia)
+                                            {
+                                                <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
+                                                    <i class="bi bi-arrow-left-right"></i> Transferência
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <a asp-action="Edit" asp-route-id="@item.Id" 
+                                                   class="btn btn-sm btn-outline-primary btn-modal" 
+                                                   title="Editar Categoria">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </a>
+                                                <a asp-action="Delete" asp-route-id="@item.Id" 
+                                                   class="btn btn-sm btn-outline-danger btn-modal" 
+                                                   title="Excluir Categoria">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox display-1 text-muted"></i>
+                        <p class="lead text-muted mt-3">Nenhuma categoria cadastrada.</p>
+                        <a asp-action="Create" class="btn btn-primary btn-modal" title="Criar Primeira Categoria">
+                            <i class="bi bi-plus-circle"></i> Criar Primeira Categoria
+                        </a>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script>
+        function Filtrar() {
+            $.get(window.location.href, function (data) {
+                $('#gridContainer').html($(data).find('#gridContainer').html());
+            });
+        }
+    </script>
 }

@@ -12,7 +12,7 @@
                 <h1 class="display-5 fw-bold text-primary">
                     <i class="bi bi-cash-stack"></i> Lançamentos Financeiros
                 </h1>
-                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm">
+                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm btn-modal" title="Novo Lançamento">
                     <i class="bi bi-plus-circle"></i> Novo Lançamento
                 </a>
             </div>
@@ -99,28 +99,6 @@
                             <i class="bi bi-search"></i> Filtrar
                         </button>
                         <script>
-                            function Filtrar() {
-                                const form = document.getElementById('formCadastro');
-                                const formData = new FormData(form);
-
-                                fetch(window.location.pathname, {
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                    .then(response => {
-                                        if (!response.ok) {
-                                            throw new Error('Erro na requisição');
-                                        }
-                                        return response.text();
-                                    })
-                                    .then(html => {
-                                        document.getElementById('indexFiltrada').innerHTML = $("#indexFiltrada", $(html)).html();
-                                    })
-                                    .catch(error => {
-                                        console.error('Erro ao filtrar:', error);
-                                        alert('Ocorreu um erro ao aplicar os filtros. Tente novamente.');
-                                    });
-                            }
                         </script>
                         <a asp-action="Index" class="btn btn-outline-secondary">
                             <i class="bi bi-x-circle"></i> Limpar Filtros
@@ -243,13 +221,13 @@
                                         <td class="text-center">
                                             <div class="btn-group" role="group">
                                                 <a asp-action="Edit" asp-route-id="@item.Id"
-                                                   class="btn btn-sm btn-outline-primary"
-                                                   title="Editar">
+                                                   class="btn btn-sm btn-outline-primary btn-modal"
+                                                   title="Editar Lançamento">
                                                     <i class="bi bi-pencil-square"></i>
                                                 </a>
                                                 <a asp-action="Delete" asp-route-id="@item.Id"
-                                                   class="btn btn-sm btn-outline-danger"
-                                                   title="Excluir">
+                                                   class="btn btn-sm btn-outline-danger btn-modal"
+                                                   title="Excluir Lançamento">
                                                     <i class="bi bi-trash"></i>
                                                 </a>
                                             </div>
@@ -265,7 +243,7 @@
                     <div class="text-center py-5">
                         <i class="bi bi-inbox display-1 text-muted"></i>
                         <p class="lead text-muted mt-3">Nenhum lançamento encontrado para o período selecionado.</p>
-                        <a asp-action="Create" class="btn btn-primary">
+                        <a asp-action="Create" class="btn btn-primary btn-modal" title="Criar Primeiro Lançamento">
                             <i class="bi bi-plus-circle"></i> Criar Primeiro Lançamento
                         </a>
                     </div>
@@ -278,4 +256,17 @@
 
 @section Scripts {
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script>
+        function Filtrar() {
+            const form = $('#formCadastro');
+            const url = form.attr('action') || window.location.pathname;
+            const formData = form.serialize();
+
+            $.get(url + '?' + formData, function (data) {
+                $('#indexFiltrada').html($(data).find('#indexFiltrada').html());
+            }).fail(function () {
+                console.error('Erro ao filtrar');
+            });
+        }
+    </script>
 }

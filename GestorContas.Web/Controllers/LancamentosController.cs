@@ -19,6 +19,8 @@ namespace GestorContas.Web.Controllers
             _context = context;
         }
 
+        private bool IsAjaxRequest => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
         // GET: Lancamentos
         public async Task<IActionResult> Index(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia)
         {
@@ -81,6 +83,10 @@ namespace GestorContas.Web.Controllers
         {
             ViewData["CategoriaId"] = new SelectList(await _context.Categorias.OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
             ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            
+            if (IsAjaxRequest)
+                return PartialView();
+                
             return View();
         }
 
@@ -94,10 +100,18 @@ namespace GestorContas.Web.Controllers
                 _context.Add(lancamento);
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = "Lançamento cadastrado com sucesso!";
+                
+                if (IsAjaxRequest)
+                    return Json(new { success = true });
+                    
                 return RedirectToAction(nameof(Index));
             }
             ViewData["CategoriaId"] = new SelectList(await _context.Categorias.OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome", lancamento.CategoriaId);
             ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome", lancamento.ContaId);
+            
+            if (IsAjaxRequest)
+                return PartialView(lancamento);
+                
             return View(lancamento);
         }
 
@@ -116,6 +130,10 @@ namespace GestorContas.Web.Controllers
             }
             ViewData["CategoriaId"] = new SelectList(await _context.Categorias.OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome", lancamento.CategoriaId);
             ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome", lancamento.ContaId);
+            
+            if (IsAjaxRequest)
+                return PartialView(lancamento);
+                
             return View(lancamento);
         }
 
@@ -148,10 +166,18 @@ namespace GestorContas.Web.Controllers
                         throw;
                     }
                 }
+                
+                if (IsAjaxRequest)
+                    return Json(new { success = true });
+                    
                 return RedirectToAction(nameof(Index));
             }
             ViewData["CategoriaId"] = new SelectList(await _context.Categorias.OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome", lancamento.CategoriaId);
             ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome", lancamento.ContaId);
+            
+            if (IsAjaxRequest)
+                return PartialView(lancamento);
+                
             return View(lancamento);
         }
 
@@ -173,6 +199,9 @@ namespace GestorContas.Web.Controllers
                 return NotFound();
             }
 
+            if (IsAjaxRequest)
+                return PartialView(lancamento);
+
             return View(lancamento);
         }
 
@@ -188,6 +217,10 @@ namespace GestorContas.Web.Controllers
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = "Lançamento excluído com sucesso!";
             }
+            
+            if (IsAjaxRequest)
+                return Json(new { success = true });
+                
             return RedirectToAction(nameof(Index));
         }
 

@@ -16,6 +16,8 @@ namespace GestorContas.Web.Controllers
             _context = context;
         }
 
+        private bool IsAjaxRequest => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
         // GET: Categorias
         public async Task<IActionResult> Index()
         {
@@ -29,21 +31,32 @@ namespace GestorContas.Web.Controllers
         // GET: Categorias/Create
         public IActionResult Create()
         {
+            if (IsAjaxRequest)
+                return PartialView();
+
             return View();
         }
 
         // POST: Categorias/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nome")] Categoria categoria)
+        public async Task<IActionResult> Create([Bind("Id,Nome,ParaTransferencia")] Categoria categoria)
         {
             if (ModelState.IsValid)
             {
                 _context.Add(categoria);
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = "Categoria cadastrada com sucesso!";
+                
+                if (IsAjaxRequest)
+                    return Json(new { success = true });
+
                 return RedirectToAction(nameof(Index));
             }
+            
+            if (IsAjaxRequest)
+                return PartialView(categoria);
+
             return View(categoria);
         }
 
@@ -60,6 +73,10 @@ namespace GestorContas.Web.Controllers
             {
                 return NotFound();
             }
+
+            if (IsAjaxRequest)
+                return PartialView(categoria);
+
             return View(categoria);
         }
 
@@ -92,8 +109,16 @@ namespace GestorContas.Web.Controllers
                         throw;
                     }
                 }
+
+                if (IsAjaxRequest)
+                    return Json(new { success = true });
+
                 return RedirectToAction(nameof(Index));
             }
+
+            if (IsAjaxRequest)
+                return PartialView(categoria);
+
             return View(categoria);
         }
 
@@ -114,6 +139,9 @@ namespace GestorContas.Web.Controllers
                 return NotFound();
             }
 
+            if (IsAjaxRequest)
+                return PartialView(categoria);
+
             return View(categoria);
         }
 
@@ -131,6 +159,9 @@ namespace GestorContas.Web.Controllers
                 // Verificar se a categoria possui lançamentos
                 if (categoria.Lancamentos != null && categoria.Lancamentos.Any())
                 {
+                    if (IsAjaxRequest)
+                        return BadRequest("Não é possível excluir esta categoria pois existem lançamentos associados a ela.");
+
                     TempData["MensagemErro"] = "Não é possível excluir esta categoria pois existem lançamentos associados a ela.";
                     return RedirectToAction(nameof(Index));
                 }
@@ -139,6 +170,10 @@ namespace GestorContas.Web.Controllers
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = "Categoria excluída com sucesso!";
             }
+
+            if (IsAjaxRequest)
+                return Json(new { success = true });
+
             return RedirectToAction(nameof(Index));
         }
 

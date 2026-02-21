@@ -5,134 +5,164 @@
     ViewData["Title"] = "Editar Lançamento";
 }
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0">
-                        <i class="bi bi-pencil-square"></i> Editar Lançamento
-                    </h3>
+@if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+{
+    <div>
+        <form asp-action="Edit" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <input type="hidden" asp-for="Id" />
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="form-floating">
+                        <input asp-for="Descricao" class="form-control" id="modal_edit_descricao" placeholder="Descrição" autofocus />
+                        <label asp-for="Descricao"><i class="bi bi-card-text"></i> Descrição</label>
+                        <span asp-validation-for="Descricao" class="text-danger small"></span>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <form asp-action="Edit" method="post">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-                        
-                        <input type="hidden" asp-for="Id" />
-                        
-                        <div class="row g-3">
-                            <!-- Descrição -->
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <input asp-for="Descricao" 
-                                           class="form-control" 
-                                           id="descricao" 
-                                           placeholder="Descrição do lançamento"
-                                           autofocus />
-                                    <label asp-for="Descricao">
-                                        <i class="bi bi-card-text"></i> Descrição
-                                    </label>
-                                    <span asp-validation-for="Descricao" class="text-danger small"></span>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input asp-for="Valor" class="form-control" id="modal_edit_valor" placeholder="0,00" type="number" step="0.01" min="0" />
+                        <label asp-for="Valor"><i class="bi bi-currency-dollar"></i> Valor</label>
+                        <span asp-validation-for="Valor" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <input asp-for="Data" class="form-control" id="modal_edit_data" type="date" />
+                        <label asp-for="Data"><i class="bi bi-calendar-event"></i> Data</label>
+                        <span asp-validation-for="Data" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select asp-for="Tipo" class="form-select" id="modal_edit_tipo">
+                            <option value="">Selecione o tipo</option>
+                            <option value="@((int)TipoLancamento.Entrada)">Entrada</option>
+                            <option value="@((int)TipoLancamento.Saida)">Saída</option>
+                        </select>
+                        <label asp-for="Tipo"><i class="bi bi-arrow-left-right"></i> Tipo</label>
+                        <span asp-validation-for="Tipo" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select asp-for="CategoriaId" class="form-select" asp-items="ViewBag.CategoriaId" id="modal_edit_categoria">
+                            <option value="">Selecione a categoria</option>
+                        </select>
+                        <label asp-for="CategoriaId"><i class="bi bi-tag"></i> Categoria</label>
+                        <span asp-validation-for="CategoriaId" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-floating">
+                        <select asp-for="ContaId" class="form-select" asp-items="ViewBag.ContaId" id="modal_edit_conta">
+                            <option value="">Selecione a conta</option>
+                        </select>
+                        <label asp-for="ContaId"><i class="bi bi-wallet2"></i> Conta</label>
+                        <span asp-validation-for="ContaId" class="text-danger small"></span>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+            </div>
+        </form>
+    </div>
+    <script>
+        (function() {
+            const dataInput = document.getElementById('modal_edit_data');
+            if (dataInput && dataInput.value) {
+                const date = new Date(dataInput.value);
+                dataInput.value = date.toISOString().split('T')[0];
+            }
+            const tipoSelect = document.getElementById('modal_edit_tipo');
+            const valorInput = document.getElementById('modal_edit_valor');
+            if (tipoSelect) {
+                tipoSelect.addEventListener('change', function() {
+                    if (this.value == '@((int)TipoLancamento.Entrada)') {
+                        valorInput.classList.remove('border-danger');
+                        valorInput.classList.add('border-success');
+                    } else if (this.value == '@((int)TipoLancamento.Saida)') {
+                        valorInput.classList.remove('border-success');
+                        valorInput.classList.add('border-danger');
+                    }
+                });
+            }
+        })();
+    </script>
+}
+else
+{
+    <div class="container">
+        <!-- Full view content... same as original but maybe slightly optimized if needed -->
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0"><i class="bi bi-pencil-square"></i> Editar Lançamento</h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <form asp-action="Edit" method="post">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                            <input type="hidden" asp-for="Id" />
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <input asp-for="Descricao" class="form-control" id="descricao" autofocus />
+                                        <label asp-for="Descricao">Descrição</label>
+                                        <span asp-validation-for="Descricao" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input asp-for="Valor" class="form-control" id="valor" type="number" step="0.01" />
+                                        <label asp-for="Valor">Valor</label>
+                                        <span asp-validation-for="Valor" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <input asp-for="Data" class="form-control" id="data" type="date" />
+                                        <label asp-for="Data">Data</label>
+                                        <span asp-validation-for="Data" class="text-danger"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select asp-for="Tipo" class="form-select" id="tipo">
+                                            <option value="@((int)TipoLancamento.Entrada)">Entrada</option>
+                                            <option value="@((int)TipoLancamento.Saida)">Saída</option>
+                                        </select>
+                                        <label asp-for="Tipo">Tipo</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select asp-for="CategoriaId" class="form-select" asp-items="ViewBag.CategoriaId"></select>
+                                        <label asp-for="CategoriaId">Categoria</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-floating">
+                                        <select asp-for="ContaId" class="form-select" asp-items="ViewBag.ContaId"></select>
+                                        <label asp-for="ContaId">Conta</label>
+                                    </div>
                                 </div>
                             </div>
-
-                            <!-- Valor -->
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input asp-for="Valor" 
-                                           class="form-control" 
-                                           id="valor" 
-                                           placeholder="0,00"
-                                           type="number"
-                                           step="0.01"
-                                           min="0" />
-                                    <label asp-for="Valor">
-                                        <i class="bi bi-currency-dollar"></i> Valor
-                                    </label>
-                                    <span asp-validation-for="Valor" class="text-danger small"></span>
-                                </div>
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between">
+                                <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                                <button type="submit" class="btn btn-primary btn-lg">Salvar Alterações</button>
                             </div>
-
-                            <!-- Data -->
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <input asp-for="Data" 
-                                           class="form-control" 
-                                           id="data" 
-                                           type="date" />
-                                    <label asp-for="Data">
-                                        <i class="bi bi-calendar-event"></i> Data
-                                    </label>
-                                    <span asp-validation-for="Data" class="text-danger small"></span>
-                                </div>
-                            </div>
-
-                            <!-- Tipo -->
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <select asp-for="Tipo" 
-                                            class="form-select" 
-                                            id="tipo">
-                                        <option value="">Selecione o tipo</option>
-                                        <option value="@((int)TipoLancamento.Entrada)">Entrada</option>
-                                        <option value="@((int)TipoLancamento.Saida)">Saída</option>
-                                    </select>
-                                    <label asp-for="Tipo">
-                                        <i class="bi bi-arrow-left-right"></i> Tipo
-                                    </label>
-                                    <span asp-validation-for="Tipo" class="text-danger small"></span>
-                                </div>
-                            </div>
-
-                            <!-- Categoria -->
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <select asp-for="CategoriaId" 
-                                            class="form-select" 
-                                            asp-items="ViewBag.CategoriaId"
-                                            id="categoria">
-                                        <option value="">Selecione a categoria</option>
-                                    </select>
-                                    <label asp-for="CategoriaId">
-                                        <i class="bi bi-tag"></i> Categoria
-                                    </label>
-                                    <span asp-validation-for="CategoriaId" class="text-danger small"></span>
-                                </div>
-                            </div>
-
-                            <!-- Conta -->
-                            <div class="col-md-6">
-                                <div class="form-floating">
-                                    <select asp-for="ContaId" 
-                                            class="form-select" 
-                                            asp-items="ViewBag.ContaId"
-                                            id="conta">
-                                        <option value="">Selecione a conta</option>
-                                    </select>
-                                    <label asp-for="ContaId">
-                                        <i class="bi bi-wallet2"></i> Conta
-                                    </label>
-                                    <span asp-validation-for="ContaId" class="text-danger small"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
-                                <i class="bi bi-arrow-left"></i> Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="bi bi-check-circle"></i> Salvar Alterações
-                            </button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}

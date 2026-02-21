@@ -16,6 +16,8 @@ namespace GestorContas.Web.Controllers
             _context = context;
         }
 
+        private bool IsAjaxRequest => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+
         // GET: Contas
         public async Task<IActionResult> Index()
         {
@@ -29,6 +31,9 @@ namespace GestorContas.Web.Controllers
         // GET: Contas/Create
         public IActionResult Create()
         {
+            if (IsAjaxRequest)
+                return PartialView();
+
             return View();
         }
 
@@ -42,8 +47,16 @@ namespace GestorContas.Web.Controllers
                 _context.Add(conta);
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = "Conta cadastrada com sucesso!";
+                
+                if (IsAjaxRequest)
+                    return Json(new { success = true });
+
                 return RedirectToAction(nameof(Index));
             }
+
+            if (IsAjaxRequest)
+                return PartialView(conta);
+
             return View(conta);
         }
 
@@ -60,6 +73,10 @@ namespace GestorContas.Web.Controllers
             {
                 return NotFound();
             }
+
+            if (IsAjaxRequest)
+                return PartialView(conta);
+
             return View(conta);
         }
 
@@ -92,8 +109,16 @@ namespace GestorContas.Web.Controllers
                         throw;
                     }
                 }
+
+                if (IsAjaxRequest)
+                    return Json(new { success = true });
+
                 return RedirectToAction(nameof(Index));
             }
+
+            if (IsAjaxRequest)
+                return PartialView(conta);
+
             return View(conta);
         }
 
@@ -114,6 +139,9 @@ namespace GestorContas.Web.Controllers
                 return NotFound();
             }
 
+            if (IsAjaxRequest)
+                return PartialView(conta);
+
             return View(conta);
         }
 
@@ -131,6 +159,9 @@ namespace GestorContas.Web.Controllers
                 // Verificar se a conta possui lançamentos
                 if (conta.Lancamentos != null && conta.Lancamentos.Any())
                 {
+                    if (IsAjaxRequest)
+                        return BadRequest("Não é possível excluir esta conta pois existem lançamentos associados a ela.");
+
                     TempData["MensagemErro"] = "Não é possível excluir esta conta pois existem lançamentos associados a ela.";
                     return RedirectToAction(nameof(Index));
                 }
@@ -139,6 +170,10 @@ namespace GestorContas.Web.Controllers
                 await _context.SaveChangesAsync();
                 TempData["MensagemSucesso"] = "Conta excluída com sucesso!";
             }
+
+            if (IsAjaxRequest)
+                return Json(new { success = true });
+
             return RedirectToAction(nameof(Index));
         }
 

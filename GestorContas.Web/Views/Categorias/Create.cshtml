@@ -4,65 +4,70 @@
     ViewData["Title"] = "Nova Categoria";
 }
 
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card shadow-lg border-0">
-                <div class="card-header bg-success text-white">
-                    <h3 class="mb-0">
-                        <i class="bi bi-plus-circle-fill"></i> Nova Categoria
-                    </h3>
+@if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+{
+    <div>
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="form-floating">
+                        <input asp-for="Nome" class="form-control" id="modal_cat_nome" placeholder="Nome" autofocus />
+                        <label asp-for="Nome"><i class="bi bi-tag-fill"></i> Nome</label>
+                        <span asp-validation-for="Nome" class="text-danger small"></span>
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <form asp-action="Create" method="post">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-                        
-                        <div class="row g-3">
-                            <!-- Nome -->
-                            <div class="col-12">
-                                <div class="form-floating">
-                                    <input asp-for="Nome" 
-                                           class="form-control" 
-                                           id="nome" 
-                                           placeholder="Nome da categoria"
-                                           autofocus />
-                                    <label asp-for="Nome">
-                                        <i class="bi bi-tag-fill"></i> Nome
-                                    </label>
-                                    <span asp-validation-for="Nome" class="text-danger small"></span>
-                                </div>
-                            </div>
-                            
-                            <!-- Para Transferência -->
-                            <div class="col-12">
-                                <div class="form-check form-switch p-3 border rounded bg-light">
-                                    <input class="form-check-input" type="checkbox" asp-for="ParaTransferencia" id="paraTransferencia" style="margin-left: 0.1em;">
-                                    <label class="form-check-label ms-2" asp-for="ParaTransferencia">
-                                        <i class="bi bi-arrow-left-right text-info"></i> Marcador para Transferências Internas
-                                    </label>
-                                    <div class="form-text ms-2 small">
-                                        Marque esta opção se esta categoria for usada para identificar transferências entre contas.
+                <div class="col-12">
+                    <div class="form-check form-switch p-3 border rounded bg-light">
+                        <input class="form-check-input" type="checkbox" asp-for="ParaTransferencia" id="modal_cat_transf" style="margin-left: 0.1em;">
+                        <label class="form-check-label ms-2" asp-for="ParaTransferencia">
+                            <i class="bi bi-arrow-left-right text-info"></i> Marcador para Transferências Internas
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="d-flex justify-content-end">
+                <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success">Salvar Categoria</button>
+            </div>
+        </form>
+    </div>
+}
+else
+{
+    <div class="container">
+        <!-- Full view content -->
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card shadow-lg border-0">
+                    <div class="card-header bg-success text-white">
+                        <h3 class="mb-0"><i class="bi bi-plus-circle-fill"></i> Nova Categoria</h3>
+                    </div>
+                    <div class="card-body p-4">
+                        <form asp-action="Create" method="post">
+                            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <input asp-for="Nome" class="form-control" id="nome" placeholder="Nome" autofocus />
+                                        <label asp-for="Nome">Nome</label>
+                                        <span asp-validation-for="Nome" class="text-danger"></span>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <hr class="my-4">
-
-                        <div class="d-flex justify-content-between">
-                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
-                                <i class="bi bi-arrow-left"></i> Cancelar
-                            </a>
-                            <button type="submit" class="btn btn-success btn-lg">
-                                <i class="bi bi-check-circle"></i> Salvar Categoria
-                            </button>
-                        </div>
-                    </form>
+                            <hr class="my-4">
+                            <div class="d-flex justify-content-between">
+                                <a asp-action="Index" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                                <button type="submit" class="btn btn-success btn-lg">Salvar Categoria</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
