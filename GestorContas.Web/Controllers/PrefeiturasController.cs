@@ -186,6 +186,33 @@ namespace GestorContas.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // POST: Prefeituras/Replicate/5
+        [HttpPost]
+        public async Task<IActionResult> Replicate(int id)
+        {
+            var original = await _context.Prefeituras.FindAsync(id);
+            if (original == null) return NotFound();
+
+            var copia = new Prefeitura
+            {
+                Descricao = original.Descricao,
+                Valor = original.Valor,
+                Entrada = original.Entrada,
+                Data = original.Data?.AddMonths(1),
+                VencimentoDaParcela = original.VencimentoDaParcela?.AddMonths(1)
+            };
+
+            _context.Prefeituras.Add(copia);
+            await _context.SaveChangesAsync();
+
+            TempData["MensagemSucesso"] = $"Cópia realizada para o mês {copia.VencimentoDaParcela?.Month}/{copia.VencimentoDaParcela?.Year}!";
+
+            if (IsAjaxRequest)
+                return Json(new { success = true });
+
+            return RedirectToAction(nameof(Index));
+        }
+
         private bool PrefeituraExists(int id)
         {
             return _context.Prefeituras.Any(e => e.Id == id);

@@ -98,4 +98,26 @@
             });
         }
     </script>
+    <script>
+        $(function () {
+            $(document).on('submit', '.form-ajax-replicate', function (e) {
+                e.preventDefault();
+                const form = $(this);
+                const confirmMsg = form.data('confirm');
+                
+                if (confirmMsg && !confirm(confirmMsg)) return;
+
+                $.post(form.attr('action'), form.serialize(), function (response) {
+                    if (response.success) {
+                        // Refresh grid after replication
+                        Filtrar();
+                        // Show success message if available in response or Toast
+                        alert('Registro replicado com sucesso para o próximo mês!');
+                    }
+                }).fail(function () {
+                    alert('Erro ao replicar registro.');
+                });
+            });
+        });
+    </script>
 }
