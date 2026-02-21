@@ -12,20 +12,18 @@
                 <h1 class="display-5 fw-bold text-primary">
                     <i class="bi bi-cash-stack"></i> Lançamentos Financeiros
                 </h1>
-                <a asp-action="Create" class="btn btn-success btn-lg shadow-sm btn-modal" title="Novo Lançamento">
-                    <i class="bi bi-plus-circle"></i> Novo Lançamento
-                </a>
+                <div class="btn-group shadow-sm">
+                    <a asp-action="Create" class="btn btn-success btn-lg btn-modal" title="Novo Lançamento">
+                        <i class="bi bi-plus-circle"></i> Novo Lançamento
+                    </a>
+                    <a asp-action="Transferencia" class="btn btn-primary btn-lg btn-modal" title="Transferência entre Contas">
+                        <i class="bi bi-arrow-left-right"></i> Transferência
+                    </a>
+                </div>
             </div>
         </div>
     </div>
 
-    @if (TempData["MensagemSucesso"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill"></i> @TempData["MensagemSucesso"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
 
     <!-- Filtros -->
     <div class="card shadow-sm mb-4">
@@ -268,5 +266,22 @@
                 console.error('Erro ao filtrar');
             });
         }
+
+        $(function() {
+            // Mensagens do servidor via TempData
+            @if (TempData["MensagemSucesso"] != null)
+            {
+                <text>showToast('@TempData["MensagemSucesso"]', 'Sucesso', 'success');</text>
+            }
+            @if (TempData["MensagemErro"] != null)
+            {
+                <text>showToast('@TempData["MensagemErro"]', 'Erro', 'danger');</text>
+            }
+
+            // Filtro automático para todos os selects dentro do form de filtros
+            $('#formCadastro select').on('change', function() {
+                Filtrar();
+            });
+        });
     </script>
 }

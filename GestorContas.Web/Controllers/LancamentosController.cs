@@ -7,6 +7,7 @@ using GestorContas.Web.Models.Enums;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using GestorContas.Web.Models.ViewModels;
 
 namespace GestorContas.Web.Controllers
 {
@@ -71,8 +72,8 @@ namespace GestorContas.Web.Controllers
                 .ThenBy(l => l.Descricao).ToListAsync();
 
             // Calcular totais
-            ViewBag.TotalEntradas = lancamentos.Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);
-            ViewBag.TotalSaidas = lancamentos.Where(l => l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor);
+            ViewBag.TotalEntradas = lancamentos.Where(x=>x.Categoria?.ParaTransferencia == false).Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);
+            ViewBag.TotalSaidas = lancamentos.Where(x=>x.Categoria?.ParaTransferencia == false).Where(l => l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor);
             ViewBag.Saldo = ViewBag.TotalEntradas - ViewBag.TotalSaidas;
 
             return View(lancamentos);
@@ -222,6 +223,80 @@ namespace GestorContas.Web.Controllers
                 return Json(new { success = true });
                 
             return RedirectToAction(nameof(Index));
+        }
+
+        public async Task<IActionResult> Transferencia()
+        {
+            ViewData["CategoriaId"] = new SelectList(await _context.Categorias.Where(c => c.ParaTransferencia).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            
+            if (IsAjaxRequest)
+                return PartialView();
+                
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Transferencia(TransferenciaViewModel model)
+        {
+            if (model.ContaSaidaId == model.ContaEntradaId)
+            {
+                ModelState.AddModelError("ContaEntradaId", "A conta de entrada deve ser diferente da conta de saída.");
+            }
+
+            if (ModelState.IsValid)
+            {
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    // 1. Lançamento de Saída
+                    var lancamentoSaida = new Lancamento
+                    {
+                        Descricao = $"{model.Descricao} (Saída)",
+                        Valor = model.Valor,
+                        Tipo = TipoLancamento.Saida,
+                        Data = model.Data,
+                        CategoriaId = model.CategoriaId,
+                        ContaId = model.ContaSaidaId
+                    };
+
+                    // 2. Lançamento de Entrada
+                    var lancamentoEntrada = new Lancamento
+                    {
+                        Descricao = $"{model.Descricao} (Entrada)",
+                        Valor = model.Valor,
+                        Tipo = TipoLancamento.Entrada,
+                        Data = model.Data,
+                        CategoriaId = model.CategoriaId,
+                        ContaId = model.ContaEntradaId
+                    };
+
+                    _context.Lancamentos.AddRange(lancamentoSaida, lancamentoEntrada);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    TempData["MensagemSucesso"] = "Transferência realizada com sucesso!";
+                    
+                    if (IsAjaxRequest)
+                        return Json(new { success = true });
+                        
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    ModelState.AddModelError("", "Erro ao processar a transferência.");
+                }
+            }
+
+            ViewData["CategoriaId"] = new SelectList(await _context.Categorias.Where(c => c.ParaTransferencia).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome", model.CategoriaId);
+            ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            
+            if (IsAjaxRequest)
+                return PartialView(model);
+                
+            return View(model);
         }
 
         private bool LancamentoExists(int id)
