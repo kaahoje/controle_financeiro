@@ -91,13 +91,7 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group" role="group">
-                                            <form asp-action="Replicate" asp-route-id="@item.Id" method="post" 
-                                                  class="d-inline form-ajax-replicate" data-confirm="Deseja replicar este registro para o mês seguinte?">
-                                                @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Replicar para próximo mês">
-                                                    <i class="bi bi-arrow-right-circle"></i>
-                                                </button>
-                                            </form>
+                                            
                                             <a asp-action="Edit" asp-route-id="@item.Id" 
                                                class="btn btn-sm btn-outline-primary btn-modal" 
                                                title="Editar">
@@ -108,6 +102,13 @@
                                                title="Excluir">
                                                 <i class="bi bi-trash"></i>
                                             </a>
+                                            <form asp-action="Replicate" asp-route-id="@item.Id" method="post" 
+                                                  class="d-inline form-ajax-replicate" data-confirm="Deseja replicar este registro para o mês seguinte?">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Replicar para próximo mês">
+                                                    <i class="bi bi-arrow-right-circle"></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

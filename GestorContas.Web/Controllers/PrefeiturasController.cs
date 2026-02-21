@@ -86,8 +86,9 @@ namespace GestorContas.Web.Controllers
         // POST: Prefeituras/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Descricao,Data,Valor,Entrada,VencimentoDaParcela")] Prefeitura prefeitura)
+        public async Task<IActionResult> Create([Bind("Id,Descricao,Valor,Entrada,VencimentoDaParcela")] Prefeitura prefeitura)
         {
+            prefeitura.Data = DateTime.Now; // Data de auditoria: data do cadastro
             if (ModelState.IsValid)
             {
                 _context.Add(prefeitura);
@@ -123,7 +124,7 @@ namespace GestorContas.Web.Controllers
         // POST: Prefeituras/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Descricao,Data,Valor,Entrada,VencimentoDaParcela")] Prefeitura prefeitura)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Descricao,Valor,Entrada,VencimentoDaParcela")] Prefeitura prefeitura)
         {
             if (id != prefeitura.Id) return NotFound();
 
@@ -131,6 +132,14 @@ namespace GestorContas.Web.Controllers
             {
                 try
                 {
+                    // Recuperar a data original de auditoria para não perdê-la
+                    var originalData = await _context.Prefeituras.AsNoTracking()
+                        .Where(p => p.Id == id)
+                        .Select(p => p.Data)
+                        .FirstOrDefaultAsync();
+                    
+                    prefeitura.Data = originalData;
+
                     _context.Update(prefeitura);
                     await _context.SaveChangesAsync();
                     TempData["MensagemSucesso"] = "Registro atualizado com sucesso!";
@@ -198,7 +207,7 @@ namespace GestorContas.Web.Controllers
                 Descricao = original.Descricao,
                 Valor = original.Valor,
                 Entrada = original.Entrada,
-                Data = original.Data?.AddMonths(1),
+                Data = DateTime.Now, // Nova data de auditoria para a cópia
                 VencimentoDaParcela = original.VencimentoDaParcela?.AddMonths(1)
             };
 
