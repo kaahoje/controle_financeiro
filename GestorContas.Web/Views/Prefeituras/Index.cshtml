@@ -18,13 +18,6 @@
         </div>
     </div>
 
-    @if (TempData["MensagemSucesso"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-check-circle-fill"></i> @TempData["MensagemSucesso"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
 
     <!-- Filtros -->
     <div class="card shadow-sm mb-4">
@@ -116,24 +109,15 @@
     </script>
     <script>
         $(function () {
-            $(document).on('submit', '.form-ajax-replicate', function (e) {
-                e.preventDefault();
-                const form = $(this);
-                const confirmMsg = form.data('confirm');
-                
-                if (confirmMsg && !confirm(confirmMsg)) return;
-
-                $.post(form.attr('action'), form.serialize(), function (response) {
-                    if (response.success) {
-                        // Refresh grid after replication
-                        Filtrar();
-                        // Show success message if available in response or Toast
-                        alert('Registro replicado com sucesso para o próximo mês!');
-                    }
-                }).fail(function () {
-                    alert('Erro ao replicar registro.');
-                });
-            });
+            // Mensagens do servidor via TempData
+            @if (TempData["MensagemSucesso"] != null)
+            {
+                <text>showToast('@TempData["MensagemSucesso"]', 'Sucesso', 'success');</text>
+            }
+            @if (TempData["MensagemErro"] != null)
+            {
+                <text>showToast('@TempData["MensagemErro"]', 'Erro', 'danger');</text>
+            }
         });
     </script>
 }

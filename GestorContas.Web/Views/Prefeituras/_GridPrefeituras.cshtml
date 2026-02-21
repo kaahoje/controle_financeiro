@@ -98,14 +98,14 @@
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
                                             <a asp-action="Delete" asp-route-id="@item.Id" 
-                                               class="btn btn-sm btn-outline-danger btn-modal" 
+                                               class="btn btn-sm btn-outline-danger btn-modal rounded-0" 
                                                title="Excluir">
                                                 <i class="bi bi-trash"></i>
                                             </a>
                                             <form asp-action="Replicate" asp-route-id="@item.Id" method="post" 
                                                   class="d-inline form-ajax-replicate" data-confirm="Deseja replicar este registro para o mês seguinte?">
                                                 @Html.AntiForgeryToken()
-                                                <button type="submit" class="btn btn-sm btn-outline-success" title="Replicar para próximo mês">
+                                                <button type="submit" class="btn btn-sm btn-outline-success rounded-start-0" title="Replicar para próximo mês">
                                                     <i class="bi bi-arrow-right-circle"></i>
                                                 </button>
                                             </form>

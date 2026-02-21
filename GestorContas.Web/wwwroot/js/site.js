@@ -43,11 +43,39 @@ function bindFormEvents() {
                     $('#mainModalBody').html(xhr.responseText);
                     bindFormEvents();
                 } else {
-                    alert('Ocorreu um erro ao salvar os dados.');
+                    showToast('Ocorreu um erro ao salvar os dados.', 'Erro', 'danger');
                 }
             }
         });
     });
+}
+
+function showToast(message, title = 'Notificação', type = 'info') {
+    const toastElement = document.getElementById('liveToast');
+    const toastBody = document.getElementById('toastMessage');
+    const toastTitle = document.getElementById('toastTitle');
+    const toastIcon = document.getElementById('toastIcon');
+
+    toastBody.innerText = message;
+    toastTitle.innerText = title;
+
+    // Configura ícone e cor baseado no tipo
+    toastIcon.className = 'bi me-2';
+    toastElement.className = 'toast';
+
+    if (type === 'success') {
+        toastIcon.classList.add('bi-check-circle-fill', 'text-success');
+        toastElement.classList.add('border-success');
+    } else if (type === 'danger') {
+        toastIcon.classList.add('bi-exclamation-triangle-fill', 'text-danger');
+        toastElement.classList.add('border-danger');
+    } else {
+        toastIcon.classList.add('bi-info-circle-fill', 'text-primary');
+        toastElement.classList.add('border-primary');
+    }
+
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
 }
 
 $(document).ready(function () {
@@ -57,5 +85,35 @@ $(document).ready(function () {
         var url = $(this).attr('href') || $(this).data('url');
         var titulo = $(this).attr('title') || $(this).data('titulo') || 'Cadastro';
         abrirModal(url, titulo);
+    });
+
+    // Delegar eventos de replicação para qualquer tela (caso necessário no futuro)
+    $(document).on('submit', '.form-ajax-replicate', function (e) {
+        e.preventDefault();
+        const form = $(this);
+        const confirmMsg = form.data('confirm');
+
+        Swal.fire({
+            title: 'Confirmar Replicação',
+            text: confirmMsg,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sim, replicar!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post(form.attr('action'), form.serialize(), function (response) {
+                    if (response.success) {
+                        if (typeof Filtrar === 'function') Filtrar();
+                        else location.reload();
+                        showToast('Registro replicado com sucesso!', 'Sucesso', 'success');
+                    }
+                }).fail(function () {
+                    showToast('Erro ao replicar registro.', 'Erro', 'danger');
+                });
+            }
+        });
     });
 });
