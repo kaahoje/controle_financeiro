@@ -1,0 +1,57 @@
+@model GestorContas.Web.Models.Prefeitura
+
+@{
+    ViewData["Title"] = "Excluir Registro de Prefeitura";
+}
+
+@if (Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+{
+    <div>
+        <div class="alert alert-warning">
+            <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Tem certeza?</h5>
+            <p>Você está prestes a excluir o registro <strong>"@Model.Descricao"</strong>.</p>
+            <p class="mb-0"><strong>Esta ação não pode ser desfeita!</strong></p>
+        </div>
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="Id" />
+            <div class="d-flex justify-content-end mt-3">
+                <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+            </div>
+        </form>
+    </div>
+}
+else
+{
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card shadow border-danger">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">Confirmar Exclusão</h4>
+                    </div>
+                    <div class="card-body p-4 text-center">
+                        <i class="bi bi-exclamation-octagon text-danger display-1 mb-3"></i>
+                        <p class="lead">Tem certeza que deseja excluir este registro?</p>
+                        <hr>
+                        <dl class="row text-start">
+                            <dt class="col-sm-4">Descrição</dt>
+                            <dd class="col-sm-8">@Model.Descricao</dd>
+                            <dt class="col-sm-4">Data</dt>
+                            <dd class="col-sm-8">@(Model.Data?.ToString("dd/MM/yyyy") ?? "-")</dd>
+                            <dt class="col-sm-4">Valor</dt>
+                            <dd class="col-sm-8">@(Model.Valor?.ToString("C") ?? "-")</dd>
+                        </dl>
+                        <form asp-action="Delete" method="post">
+                            <input type="hidden" asp-for="Id" />
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                                <button type="submit" class="btn btn-danger">Excluir Permanentemente</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,116 @@
+@model IEnumerable<GestorContas.Web.Models.Prefeitura>
+
+<!-- Totalizadores -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-success bg-light">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Recebimentos (Acumulado)</h6>
+                <h3 class="text-success fw-bold mb-0">
+                    <i class="bi bi-plus-circle-fill"></i> @(((decimal)ViewBag.TotalRecebimentos).ToString("C"))
+                </h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-danger bg-light">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Pagamentos (Acumulado)</h6>
+                <h3 class="text-danger fw-bold mb-0">
+                    <i class="bi bi-dash-circle-fill"></i> @(((decimal)ViewBag.TotalPagamentos).ToString("C"))
+                </h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-primary bg-light">
+            <div class="card-body text-center">
+                <h6 class="text-muted mb-2">Saldo Geral (Acumulado)</h6>
+                <h3 class="@((decimal)ViewBag.SaldoMes >= 0 ? "text-primary" : "text-danger") fw-bold mb-0">
+                    <i class="bi bi-wallet2"></i> @(((decimal)ViewBag.SaldoMes).ToString("C"))
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-list-ul"></i> Detalhamento das Prefeituras</h5>
+        <span class="badge bg-primary">@Model.Count() registros</span>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Data Vencimento</th>
+                            <th>Descrição</th>
+                            <th class="text-end">Valor</th>
+                            <th class="text-center">Tipo</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">
+                                    <span class="badge bg-secondary">
+                                        @(item.VencimentoDaParcela?.ToString("dd/MM/yyyy") ?? "-")
+                                    </span>
+                                </td>
+                                <td class="fw-semibold">@item.Descricao</td>
+                                <td class="text-end fw-bold @(item.Entrada == true ? "text-success" : "text-danger")">
+                                    @(item.Valor?.ToString("C") ?? "-")
+                                </td>
+                                <td class="text-center">
+                                    @if (item.Entrada == true)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="bi bi-arrow-up"></i> Recebimento
+                                        </span>
+                                    }
+                                    else if (item.Entrada == false)
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="bi bi-arrow-down"></i> Pagamento
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Não definido</span>
+                                    }
+                                </td>
+                                
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Edit" asp-route-id="@item.Id" 
+                                           class="btn btn-sm btn-outline-primary btn-modal" 
+                                           title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" 
+                                           class="btn btn-sm btn-outline-danger btn-modal" 
+                                           title="Excluir">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-inbox display-1 text-muted"></i>
+                <p class="lead text-muted mt-3">Nenhum registro para este período.</p>
+            </div>
+        }
+    </div>
+</div>

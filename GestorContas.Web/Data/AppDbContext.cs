@@ -13,6 +13,7 @@ namespace GestorContas.Web.Data
         public DbSet<Lancamento> Lancamentos { get; set; } = null!;
         public DbSet<Categoria> Categorias { get; set; } = null!;
         public DbSet<Conta> Contas { get; set; } = null!;
+        public DbSet<Prefeitura> Prefeituras { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
