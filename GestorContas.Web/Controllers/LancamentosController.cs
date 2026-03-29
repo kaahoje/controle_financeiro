@@ -84,9 +84,9 @@ namespace GestorContas.Web.Controllers
                 .OrderByDescending(l => l.Data)
                 .ThenBy(l => l.Descricao).ToListAsync();
 
-            // Calcular totais - Incluindo tudo para bater com o que é visto na tela
-            ViewBag.TotalEntradas = lancamentos.Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);
-            ViewBag.TotalSaidas = lancamentos.Where(l => l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor);
+            // Calcular totais - Ignorando transferências internas para refletir receitas/despesas reais
+            ViewBag.TotalEntradas = lancamentos.Where(x => x.Categoria?.ParaTransferencia == false).Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);
+            ViewBag.TotalSaidas = lancamentos.Where(x => x.Categoria?.ParaTransferencia == false).Where(l => l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor);
             ViewBag.Saldo = ViewBag.TotalEntradas - ViewBag.TotalSaidas;
 
             return View(lancamentos);

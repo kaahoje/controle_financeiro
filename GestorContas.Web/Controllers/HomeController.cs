@@ -67,8 +67,10 @@ public class HomeController : Controller
             .Where(l => l.Data >= primeiroDiaMes && l.Data <= ultimoDiaMes)
             .ToListAsync();
         
-        // Removido o filtro de categoria para transferência para que o resumo bata com a listagem
-        lancamentosMes = lancamentosMes.ToList();
+        // Filtro para excluir categorias de transferência interna do resumo mensal (visão de resultado real)
+        lancamentosMes = lancamentosMes
+            .Where(x => x.Categoria?.ParaTransferencia == false)
+            .ToList();
         
         dashboard.ResumoMensal = new ResumoMensalViewModel
         {
