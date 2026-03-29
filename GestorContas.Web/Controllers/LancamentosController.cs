@@ -299,6 +299,37 @@ namespace GestorContas.Web.Controllers
             return View(model);
         }
 
+        public async Task<IActionResult> GetLancamentosPorCategoria(int mes, int ano, int categoriaId)
+        {
+            var primeiroDiaMes = new DateTime(ano, mes, 1);
+            var ultimoDiaMes = primeiroDiaMes.AddMonths(1).AddDays(-1);
+
+            var lancamentos = await _context.Lancamentos
+                .Include(l => l.Conta)
+                .Include(l => l.Categoria)
+                .Where(l => l.CategoriaId == categoriaId && l.Data >= primeiroDiaMes && l.Data <= ultimoDiaMes)
+                .OrderByDescending(l => l.Data)
+                .ToListAsync();
+
+            var viewModel = new LancamentosAgrupadosViewModel
+            {
+                CategoriaNome = (await _context.Categorias.FindAsync(categoriaId))?.Nome,
+                TotalGeral = lancamentos.Sum(l => l.Valor),
+                GruposPorConta = lancamentos
+                    .GroupBy(l => l.Conta?.Nome ?? "Sem Conta")
+                    .Select(g => new GrupoContaViewModel
+                    {
+                        ContaNome = g.Key,
+                        TotalConta = g.Sum(l => l.Valor),
+                        Lancamentos = g.ToList()
+                    })
+                    .OrderBy(x => x.ContaNome)
+                    .ToList()
+            };
+
+            return PartialView("_LancamentosPorCategoria", viewModel);
+        }
+
         private bool LancamentoExists(int id)
         {
             return _context.Lancamentos.Any(e => e.Id == id);

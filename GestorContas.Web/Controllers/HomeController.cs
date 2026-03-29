@@ -96,24 +96,30 @@ public class HomeController : Controller
         };
 
         // 4. Gráfico de Despesas por Categoria (Mês Selecionado)
-        var gastosPorCategoria = _context.Lancamentos
+        var gastosPorCategoriaQuery = _context.Lancamentos
             .Include(l => l.Categoria)
             .Where(l => !l.Categoria.ParaTransferencia)
             .Where(l => l.Tipo == TipoLancamento.Saida && 
                        l.Data >= primeiroDiaMes && 
                        l.Data <= ultimoDiaMes)
             .ToList()
-            .GroupBy(l => l.Categoria.Nome)
-            .Select(g => new { Categoria = g.Key, Total = g.Sum(l => l.Valor) })
+            .GroupBy(l => new { l.Categoria.Id, l.Categoria.Nome })
+            .Select(g => new CategoriaResumoViewModel 
+            { 
+                CategoriaId = g.Key.Id, 
+                CategoriaNome = g.Key.Nome, 
+                Total = g.Sum(l => l.Valor) 
+            })
             .OrderByDescending(x => x.Total)
-            .Take(10) // Top 10 categorias
             .ToList();
+
+        dashboard.DespesasPorCategoria = gastosPorCategoriaQuery;
 
         dashboard.GraficoDespesas = new GraficoViewModel
         {
             Titulo = "Top Despesas por Categoria",
-            Labels = gastosPorCategoria.Select(x => x.Categoria).ToList(),
-            Valores = gastosPorCategoria.Select(x => x.Total).ToList(),
+            Labels = gastosPorCategoriaQuery.Take(10).Select(x => x.CategoriaNome).ToList(),
+            Valores = gastosPorCategoriaQuery.Take(10).Select(x => x.Total).ToList(),
             Cores = new List<string> 
             { 
                 "#0d6efd", "#6610f2", "#6f42c1", "#d63384", "#dc3545", 

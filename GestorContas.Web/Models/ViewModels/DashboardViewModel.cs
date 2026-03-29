@@ -8,5 +8,6 @@ namespace GestorContas.Web.Models.ViewModels
         public GraficoViewModel GraficoFluxoCaixa { get; set; } = new();
         public GraficoViewModel GraficoDespesas { get; set; } = new();
         public GraficoViewModel GraficoEvolucaoSaldo { get; set; } = new();
+        public List<CategoriaResumoViewModel> DespesasPorCategoria { get; set; } = new();
     }
 }
