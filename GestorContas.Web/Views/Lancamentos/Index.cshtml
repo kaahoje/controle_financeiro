@@ -36,6 +36,7 @@
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Mês</label>
                         <select name="mes" class="form-select" id="filtroMes">
+                            <option value="0" selected="@(ViewBag.MesSelecionado == 0)">Todos</option>
                             @foreach (var mes in ViewBag.Meses)
                             {
                                 <option value="@mes.Id" selected="@(mes.Id == ViewBag.MesSelecionado)">@mes.Nome</option>
@@ -45,6 +46,7 @@
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Ano</label>
                         <select name="ano" class="form-select" id="filtroAno">
+                            <option value="0" selected="@(ViewBag.AnoSelecionado == 0)">Todos</option>
                             @foreach (var ano in ViewBag.Anos)
                             {
                                 <option value="@ano" selected="@(ano == ViewBag.AnoSelecionado)">@ano</option>

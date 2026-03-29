@@ -23,16 +23,13 @@ namespace GestorContas.Web.Controllers
         private bool IsAjaxRequest => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
         // GET: Lancamentos
-        public async Task<IActionResult> Index(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia)
+        public async Task<IActionResult> Index(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia, bool todos = false)
         {
             var dataAtual = DateTime.Today;
             var mesAtual = mes ?? dataAtual.Month;
             var anoAtual = ano ?? dataAtual.Year;
 
-            var primeiroDiaMes = new DateTime(anoAtual, mesAtual, 1);
-            var ultimoDiaMes = primeiroDiaMes.AddMonths(1).AddDays(-1);
-
-            ViewBag.MesSelecionado = mesAtual;
+            ViewBag.MesSelecionado = mes ?? dataAtual.Month;
             ViewBag.AnoSelecionado = anoAtual;
             ViewBag.Meses = Enumerable.Range(1, 12)
                 .Select(m => new { Id = m, Nome = new DateTime(2000, m, 1).ToString("MMMM") })
@@ -45,7 +42,23 @@ namespace GestorContas.Web.Controllers
             var query = _context.Lancamentos
                 .Include(l => l.Categoria)
                 .Include(l => l.Conta)
-                .Where(l => l.Data.Year == anoAtual && l.Data.Month == mesAtual);
+                .AsQueryable();
+
+            if (mes != 0 && ano != 0)
+            {
+                query = query.Where(l => l.Data.Year == anoAtual && l.Data.Month == mesAtual);
+            }
+            else if (mes != 0)
+            {
+                query = query.Where(l => l.Data.Month == mesAtual);
+            }
+            else if (ano != 0)
+            {
+                query = query.Where(l => l.Data.Year == anoAtual);
+            }
+            
+            ViewBag.MesSelecionado = mes ?? (todos ? 0 : dataAtual.Month);
+            ViewBag.AnoSelecionado = ano ?? (todos ? 0 : dataAtual.Year);
 
             if (categoriaId.HasValue)
             {
@@ -71,9 +84,9 @@ namespace GestorContas.Web.Controllers
                 .OrderByDescending(l => l.Data)
                 .ThenBy(l => l.Descricao).ToListAsync();
 
-            // Calcular totais
-            ViewBag.TotalEntradas = lancamentos.Where(x=>x.Categoria?.ParaTransferencia == false).Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);
-            ViewBag.TotalSaidas = lancamentos.Where(x=>x.Categoria?.ParaTransferencia == false).Where(l => l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor);
+            // Calcular totais - Incluindo tudo para bater com o que é visto na tela
+            ViewBag.TotalEntradas = lancamentos.Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);
+            ViewBag.TotalSaidas = lancamentos.Where(l => l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor);
             ViewBag.Saldo = ViewBag.TotalEntradas - ViewBag.TotalSaidas;
 
             return View(lancamentos);
