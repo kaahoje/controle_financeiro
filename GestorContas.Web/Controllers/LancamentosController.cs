@@ -343,6 +343,63 @@ namespace GestorContas.Web.Controllers
             return PartialView("_LancamentosPorCategoria", viewModel);
         }
 
+        public async Task<IActionResult> ImportarExtrato()
+        {
+            ViewBag.Categorias = new SelectList(await _context.Categorias.OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            ViewBag.Contas = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            
+            if (IsAjaxRequest)
+                return PartialView();
+                
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SalvarLancamentosImportados([FromBody] List<Lancamento> lancamentos)
+        {
+            if (lancamentos == null || !lancamentos.Any())
+            {
+                return BadRequest("Nenhum lançamento para salvar.");
+            }
+
+            try
+            {
+                foreach (var lancamento in lancamentos)
+                {
+                    lancamento.Id = 0;
+                    _context.Lancamentos.Add(lancamento);
+                }
+
+                await _context.SaveChangesAsync();
+                return Json(new { success = true, message = $"{lancamentos.Count} lançamentos salvos com sucesso!" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Erro ao salvar lançamentos: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDescricoes(string term)
+        {
+            var query = _context.Lancamentos.AsQueryable();
+            
+            if (!string.IsNullOrEmpty(term))
+            {
+                query = query.Where(l => l.Descricao.Contains(term));
+            }
+
+            var descricoes = await query
+                .Select(l => l.Descricao)
+                .Distinct()
+                .OrderBy(d => d)
+                .Take(1000)
+                .ToListAsync();
+
+            return Json(descricoes);
+        }
+
         private bool LancamentoExists(int id)
         {
             return _context.Lancamentos.Any(e => e.Id == id);

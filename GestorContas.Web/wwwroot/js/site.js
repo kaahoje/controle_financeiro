@@ -1,6 +1,10 @@
-﻿function abrirModal(url, titulo) {
+function abrirModal(url, titulo, tamanho = '') {
     $('#mainModalLabel').text(titulo);
     $('#mainModalBody').html('<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    
+    // Reset e aplica tamanho
+    $('#mainModal .modal-dialog').removeClass('modal-sm modal-lg modal-xl').addClass(tamanho);
+    
     $('#mainModal').modal('show');
 
     $.get(url, function (data) {
@@ -84,7 +88,8 @@ $(document).ready(function () {
         e.preventDefault();
         var url = $(this).attr('href') || $(this).data('url');
         var titulo = $(this).attr('title') || $(this).data('titulo') || 'Cadastro';
-        abrirModal(url, titulo);
+        var tamanho = $(this).data('tamanho') || '';
+        abrirModal(url, titulo, tamanho);
     });
 
     // Delegar eventos de replicação para qualquer tela (caso necessário no futuro)

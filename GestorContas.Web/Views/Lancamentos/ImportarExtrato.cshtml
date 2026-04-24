@@ -1,0 +1,359 @@
+@using GestorContas.Web.Models.Enums
+@{
+    // Verifica se é uma requisição AJAX para não renderizar o Layout
+    var isAjax = Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+    if (isAjax) {
+        Layout = null;
+    }
+    ViewData["Title"] = "Importar Extrato CSV";
+}
+
+<div class="@(isAjax ? "" : "container mt-4")">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="@(isAjax ? "" : "card shadow-sm border-0 rounded-3")">
+                @if (!isAjax)
+                {
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-3">
+                        <h4 class="mb-0"><i class="bi bi-file-earmark-spreadsheet me-2"></i>Importar Extrato CSV</h4>
+                        <a asp-action="Index" class="btn btn-light btn-sm"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+                    </div>
+                }
+                <div class="@(isAjax ? "" : "card-body p-4")">
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div id="drop-zone" class="border border-2 border-dashed rounded-3 p-5 text-center bg-light cursor-pointer" style="transition: all 0.3s ease;">
+                                <i class="bi bi-filetype-csv display-1 text-primary mb-3"></i>
+                                <h5>Arraste o arquivo CSV aqui</h5>
+                                <p class="text-muted">Ou clique para selecionar um arquivo</p>
+                                <input type="file" id="fileInput" accept=".csv" class="d-none" />
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Selecionar Arquivo CSV</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="processing-status" class="d-none mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            <span id="status-text">Processando arquivo...</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <div id="results-container" class="d-none">
+                        <hr />
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0 text-secondary">Lançamentos Detectados</h5>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3" style="min-width: 300px;">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light"><i class="bi bi-wallet2 me-1"></i> Conta:</span>
+                                        <select id="global-conta" class="form-select border-info shadow-none">
+                                            <!-- Populados dinamicamente -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <span class="badge bg-info text-dark me-2" id="item-count">0 itens</span>
+                                <button type="button" class="btn btn-outline-danger btn-sm" id="btn-clear-all"><i class="bi bi-trash me-1"></i>Limpar Tudo</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-hover align-middle border" id="import-table">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th style="width: 130px;">Data</th>
+                                        <th>Descrição</th>
+                                        <th style="width: 150px;">Valor</th>
+                                        <th style="width: 110px;">Tipo</th>
+                                        <th style="width: 200px;">Categoria</th>
+                                        <th style="width: 70px;" class="text-center">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="import-tbody">
+                                    <!-- Dynamic content -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <button type="button" class="btn btn-success btn-lg shadow-sm" id="btn-save-all">
+                                <i class="bi bi-check-circle-fill me-2"></i>Salvar Lançamentos Selecionados
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template for Categoria and Conta Selects -->
+<div class="d-none">
+    <select id="tpl-categoria">
+        @foreach (var item in (SelectList)ViewBag.Categorias)
+        {
+            <option value="@item.Value">@item.Text</option>
+        }
+    </select>
+    <select id="tpl-conta">
+        @foreach (var item in (SelectList)ViewBag.Contas)
+        {
+            <option value="@item.Value">@item.Text</option>
+        }
+    </select>
+    <datalist id="lista-descricoes">
+        <!-- Populados via JS -->
+    </datalist>
+</div>
+
+@Html.AntiForgeryToken()
+
+<script>
+    (function() {
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('fileInput');
+        const processingStatus = document.getElementById('processing-status');
+        const resultsContainer = document.getElementById('results-container');
+        const importTbody = document.getElementById('import-tbody');
+        const tplCategoria = document.getElementById('tpl-categoria');
+        const tplConta = document.getElementById('tpl-conta');
+        const globalConta = document.getElementById('global-conta');
+        const listaDescricoes = document.getElementById('lista-descricoes');
+
+        // Inicializar o select global de conta
+        globalConta.innerHTML = tplConta.innerHTML;
+
+        // Buscar descrições históricas para o autocomplete
+        async function fetchDescricoes() {
+            try {
+                const response = await fetch('@Url.Action("GetDescricoes", "Lancamentos")');
+                const data = await response.json();
+                listaDescricoes.innerHTML = data.map(d => `<option value="${d}">`).join('');
+            } catch (error) {
+                console.error("Erro ao carregar autocomplete:", error);
+            }
+        }
+        fetchDescricoes();
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('bg-primary', 'bg-opacity-10', 'border-primary');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('bg-primary', 'bg-opacity-10', 'border-primary');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('bg-primary', 'bg-opacity-10', 'border-primary');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                Swal.fire('Erro', 'Por favor, selecione um arquivo CSV válido.', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                parseCsv(text);
+            };
+            reader.readAsText(file, 'ISO-8859-1');
+        }
+
+        function parseCsv(text) {
+            processingStatus.classList.remove('d-none');
+            resultsContainer.classList.add('d-none');
+            importTbody.innerHTML = '';
+
+            const lines = text.split(/\r?\n/);
+            const lancamentos = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const columns = line.split(';');
+                if (columns.length < 5) continue;
+
+                const dataStr = columns[0].trim();
+                const historico = columns[3].trim();
+                const valorStr = columns[4].trim();
+
+                if (historico.toUpperCase().includes('SALDO ANTERIOR')) continue;
+                if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) continue;
+
+                const valorLimpo = valorStr.replace(/\./g, '').replace(',', '.');
+                const valor = parseFloat(valorLimpo);
+
+                if (isNaN(valor)) continue;
+
+                const partesData = dataStr.split('/');
+                const dataIso = `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
+
+                lancamentos.push({
+                    data: dataIso,
+                    descricao: historico,
+                    valor: Math.abs(valor),
+                    tipo: valor < 0 ? 2 : 1
+                });
+            }
+
+            displayResults(lancamentos);
+            processingStatus.classList.add('d-none');
+            resultsContainer.classList.remove('d-none');
+        }
+
+        function displayResults(lancamentos) {
+            importTbody.innerHTML = '';
+            document.getElementById('item-count').innerText = `${lancamentos.length} itens`;
+            
+            if (lancamentos.length === 0) {
+                importTbody.innerHTML = '<tr><td colspan="7" class="text-center p-4">Nenhum lançamento válido encontrado no arquivo.</td></tr>';
+                return;
+            }
+
+            lancamentos.forEach((l, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="date" class="form-control form-control-sm item-data bg-light" value="${l.data}" readonly tabindex="-1"></td>
+                    <td><input type="text" class="form-control form-control-sm item-descricao" value="${l.descricao}" list="lista-descricoes" autocomplete="off"></td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light">R$</span>
+                            <input type="number" step="0.01" class="form-control item-valor bg-light" value="${l.valor.toFixed(2)}" readonly tabindex="-1">
+                        </div>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm item-tipo bg-light" disabled tabindex="-1">
+                            <option value="1" ${l.tipo === 1 ? 'selected' : ''}>Entrada</option>
+                            <option value="2" ${l.tipo === 2 ? 'selected' : ''}>Saída</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm item-categoria">
+                            ${tplCategoria.innerHTML}
+                        </select>
+                    </td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" title="Excluir Linha" tabindex="-1">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                `;
+                
+                row.querySelector('.btn-remove-row').addEventListener('click', () => {
+                    row.remove();
+                    updateCount();
+                });
+                
+                importTbody.appendChild(row);
+            });
+        }
+
+        function updateCount() {
+            const count = importTbody.querySelectorAll('tr').length;
+            document.getElementById('item-count').innerText = `${count} itens`;
+            if (count === 0) {
+                resultsContainer.classList.add('d-none');
+            }
+        }
+
+        document.getElementById('btn-clear-all').addEventListener('click', () => {
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: "Isso removerá todos os itens da lista.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, limpar!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    importTbody.innerHTML = '';
+                    updateCount();
+                }
+            });
+        });
+
+        document.getElementById('btn-save-all').addEventListener('click', async () => {
+            const rows = importTbody.querySelectorAll('tr');
+            if (rows.length === 0) return;
+            
+            const contaId = parseInt(globalConta.value);
+            if (isNaN(contaId)) {
+                Swal.fire('Aviso', 'Por favor, selecione a conta de destino.', 'warning');
+                return;
+            }
+
+            const lancamentos = [];
+            rows.forEach(row => {
+                lancamentos.push({
+                    Data: row.querySelector('.item-data').value,
+                    Descricao: row.querySelector('.item-descricao').value,
+                    Valor: parseFloat(row.querySelector('.item-valor').value),
+                    Tipo: parseInt(row.querySelector('.item-tipo').value),
+                    CategoriaId: parseInt(row.querySelector('.item-categoria').value),
+                    ContaId: contaId
+                });
+            });
+
+            const btn = document.getElementById('btn-save-all');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Salvando...';
+
+            try {
+                const response = await fetch('@Url.Action("SalvarLancamentosImportados", "Lancamentos")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(lancamentos)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    Swal.fire('Sucesso!', result.message, 'success').then(() => {
+                        $('#mainModal').modal('hide');
+                        if (typeof Filtrar === 'function') {
+                            Filtrar();
+                        } else {
+                            window.location.href = '@Url.Action("Index", "Lancamentos")';
+                        }
+                    });
+                } else {
+                    Swal.fire('Erro', result.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Erro', 'Erro ao enviar dados para o servidor: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+    })();
+</script>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    #drop-zone:hover { border-color: #0d6efd !important; background-color: rgba(13, 110, 253, 0.05) !important; }
+    .border-dashed { border-style: dashed !important; }
+    .table input, .table select { border: 1px solid #ced4da; }
+    .table input:focus, .table select:focus { border: 1px solid #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
+    .sticky-top { background-color: #fff; z-index: 1020; }
+</style>
