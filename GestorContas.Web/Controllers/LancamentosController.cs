@@ -23,11 +23,13 @@ namespace GestorContas.Web.Controllers
         private bool IsAjaxRequest => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
         // GET: Lancamentos
-        public async Task<IActionResult> Index(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia, bool todos = false)
+        public async Task<IActionResult> Index(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia, bool agruparPorData = false, bool todos = false)
         {
             var dataAtual = DateTime.Today;
             var mesAtual = mes ?? dataAtual.Month;
             var anoAtual = ano ?? dataAtual.Year;
+
+            ViewBag.AgruparPorData = agruparPorData;
 
             ViewBag.MesSelecionado = mes ?? dataAtual.Month;
             ViewBag.AnoSelecionado = anoAtual;
@@ -80,9 +82,9 @@ namespace GestorContas.Web.Controllers
             }
 
             var lancamentos = await query
-                
                 .OrderByDescending(l => l.Data)
-                .ThenBy(l => l.Descricao).ToListAsync();
+                .ThenByDescending(l => l.Id)
+                .ToListAsync();
 
             // Calcular totais - Ignorando transferências internas para refletir receitas/despesas reais
             ViewBag.TotalEntradas = lancamentos.Where(x => x.Categoria?.ParaTransferencia == false).Where(l => l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor);

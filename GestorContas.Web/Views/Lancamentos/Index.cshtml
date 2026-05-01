@@ -30,8 +30,6 @@
         </div>
     </div>
 
-
-
     <!-- Filtros -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-primary text-white">
@@ -98,15 +96,18 @@
                             <option value="@false">Pagamentos/Receitas</option>
                         </select>
                     </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="agruparPorData" name="agruparPorData" value="true" @(ViewBag.AgruparPorData ? "checked" : "")>
+                            <label class="form-check-label fw-bold" for="agruparPorData">Agrupar por Data</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
-                        <button type="button" class="btn btn-primary"
-                                onclick="Filtrar()">
+                        <button type="button" class="btn btn-primary" onclick="Filtrar()">
                             <i class="bi bi-search"></i> Filtrar
                         </button>
-                        <script>
-                        </script>
                         <a asp-action="Index" class="btn btn-outline-secondary">
                             <i class="bi bi-x-circle"></i> Limpar Filtros
                         </a>
@@ -115,6 +116,7 @@
             </form>
         </div>
     </div>
+
     <div id="indexFiltrada">
         <!-- Resumo Financeiro -->
         <div class="row mb-4">
@@ -162,7 +164,7 @@
                         <table class="table table-hover table-striped mb-0">
                             <thead class="table-dark">
                                 <tr>
-                                    <th>Data</th>
+                                    <th>Data / ID</th>
                                     <th>Descrição</th>
                                     <th>Categoria</th>
                                     <th>Conta</th>
@@ -172,36 +174,53 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @{
+                                    DateTime? ultimaData = null;
+                                    bool agrupar = ViewBag.AgruparPorData ?? false;
+                                }
                                 @foreach (var item in Model)
                                 {
+                                    if (agrupar && (ultimaData == null || ultimaData.Value.Date != item.Data.Date))
+                                    {
+                                        ultimaData = item.Data;
+                                        <tr class="table-light group-header">
+                                            <td colspan="7" class="fw-bold py-2 bg-light border-bottom">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="icon-box bg-white text-primary rounded-circle me-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 32px; height: 32px;">
+                                                        <i class="bi bi-calendar-check fs-6"></i>
+                                                    </div>
+                                                    <span class="text-primary">@item.Data.ToString("dd 'de' MMMM 'de' yyyy")</span>
+                                                    <span class="badge bg-primary-subtle text-primary ms-2 rounded-pill">
+                                                        @(Model.Count(x => x.Data.Date == item.Data.Date)) lançamentos
+                                                    </span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
                                     <tr>
                                         <td>
-                                            <span class="badge bg-secondary">
-                                                @item.Data.ToString("dd/MM/yyyy")
-                                            </span>
+                                            @if (!agrupar)
+                                            {
+                                                <span class="badge bg-secondary">
+                                                    @item.Data.ToString("dd/MM/yyyy")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">#@item.Id</span>
+                                            }
                                         </td>
                                         <td class="fw-semibold">@item.Descricao</td>
                                         <td>
-                                            <table>
-                                                <tr>
-                                                    <td>
-                                                        <span class="badge bg-info">
-                                                            @item.Categoria?.Nome
-
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        @if (item.Categoria?.ParaTransferencia == true)
-                                                        {
-                                                            <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
-                                                                <i class="bi bi-arrow-left-right"></i>
-                                                            </span>
-                                                        }
-                                                    </td>
-                                                </tr>
-                                            </table>
-
-
+                                            <span class="badge bg-info">
+                                                @item.Categoria?.Nome
+                                            </span>
+                                            @if (item.Categoria?.ParaTransferencia == true)
+                                            {
+                                                <span class="badge bg-info text-dark ms-2" title="Categoria de Transferência Interna">
+                                                    <i class="bi bi-arrow-left-right"></i>
+                                                </span>
+                                            }
                                         </td>
                                         <td>
                                             <span class="badge bg-warning text-dark">
@@ -258,7 +277,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 @section Scripts {
@@ -287,8 +305,8 @@
                 <text>showToast('@TempData["MensagemErro"]', 'Erro', 'danger');</text>
             }
 
-            // Filtro automático para todos os selects dentro do form de filtros
-            $('#formCadastro select').on('change', function() {
+            // Filtro automático para todos os selects e checkbox dentro do form de filtros
+            $('#formCadastro select, #formCadastro input[type="checkbox"]').on('change', function() {
                 Filtrar();
             });
         });
