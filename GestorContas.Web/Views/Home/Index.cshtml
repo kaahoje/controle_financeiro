@@ -6,50 +6,58 @@
 
 <div class="container-fluid">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="display-5 fw-bold text-primary">
-                <i class="bi bi-speedometer2"></i> Dashboard Financeiro
-            </h1>
-            <div class="d-flex justify-content-between align-items-center">
+    <div class="page-header d-flex flex-column mb-4 pb-3 border-bottom">
+        <div class="header-title-container mb-3">
+            <h2 class="h3 fw-bold text-dark mb-0 d-flex align-items-center">
+                <div class="icon-box bg-primary-subtle text-primary rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <i class="bi bi-speedometer2 fs-4"></i>
+                </div>
+                <span>Dashboard Financeiro</span>
+            </h2>
+        </div>
+        <div class="header-actions-container">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                 <p class="lead text-muted mb-0">
                     Resumo financeiro de <strong>@Model.ResumoMensal.MesAno.ToString("MMMM/yyyy")</strong>
                 </p>
 
-                <!-- Seletor de Período -->
-                <form method="get" asp-action="Index" class="d-flex gap-2 align-items-end">
-                    <div>
-                        <label class="form-label fw-bold mb-1 small">Mês</label>
-                        <select name="mes" class="form-select form-select-sm" style="min-width: 120px;">
-                            <option value="1" selected="@(ViewBag.MesSelecionado == 1)">Janeiro</option>
-                            <option value="2" selected="@(ViewBag.MesSelecionado == 2)">Fevereiro</option>
-                            <option value="3" selected="@(ViewBag.MesSelecionado == 3)">Março</option>
-                            <option value="4" selected="@(ViewBag.MesSelecionado == 4)">Abril</option>
-                            <option value="5" selected="@(ViewBag.MesSelecionado == 5)">Maio</option>
-                            <option value="6" selected="@(ViewBag.MesSelecionado == 6)">Junho</option>
-                            <option value="7" selected="@(ViewBag.MesSelecionado == 7)">Julho</option>
-                            <option value="8" selected="@(ViewBag.MesSelecionado == 8)">Agosto</option>
-                            <option value="9" selected="@(ViewBag.MesSelecionado == 9)">Setembro</option>
-                            <option value="10" selected="@(ViewBag.MesSelecionado == 10)">Outubro</option>
-                            <option value="11" selected="@(ViewBag.MesSelecionado == 11)">Novembro</option>
-                            <option value="12" selected="@(ViewBag.MesSelecionado == 12)">Dezembro</option>
-                        </select>
+                <form method="get" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-end">
+                    <div class="d-flex gap-2">
+                        <div>
+                            <label class="form-label fw-bold mb-1 small">Mês</label>
+                            <select name="mes" class="form-select form-select-sm" style="min-width: 120px;">
+                                <option value="1" selected="@(ViewBag.MesSelecionado == 1)">Janeiro</option>
+                                <option value="2" selected="@(ViewBag.MesSelecionado == 2)">Fevereiro</option>
+                                <option value="3" selected="@(ViewBag.MesSelecionado == 3)">Março</option>
+                                <option value="4" selected="@(ViewBag.MesSelecionado == 4)">Abril</option>
+                                <option value="5" selected="@(ViewBag.MesSelecionado == 5)">Maio</option>
+                                <option value="6" selected="@(ViewBag.MesSelecionado == 6)">Junho</option>
+                                <option value="7" selected="@(ViewBag.MesSelecionado == 7)">Julho</option>
+                                <option value="8" selected="@(ViewBag.MesSelecionado == 8)">Agosto</option>
+                                <option value="9" selected="@(ViewBag.MesSelecionado == 9)">Setembro</option>
+                                <option value="10" selected="@(ViewBag.MesSelecionado == 10)">Outubro</option>
+                                <option value="11" selected="@(ViewBag.MesSelecionado == 11)">Novembro</option>
+                                <option value="12" selected="@(ViewBag.MesSelecionado == 12)">Dezembro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label fw-bold mb-1 small">Ano</label>
+                            <select name="ano" class="form-select form-select-sm" style="min-width: 100px;">
+                                @for (int ano = DateTime.Today.Year; ano >= DateTime.Today.Year - 5; ano--)
+                                {
+                                    <option value="@ano" selected="@(ViewBag.AnoSelecionado == ano)">@ano</option>
+                                }
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label class="form-label fw-bold mb-1 small">Ano</label>
-                        <select name="ano" class="form-select form-select-sm" style="min-width: 100px;">
-                            @for (int ano = DateTime.Today.Year; ano >= DateTime.Today.Year - 5; ano--)
-                            {
-                                <option value="@ano" selected="@(ViewBag.AnoSelecionado == ano)">@ano</option>
-                            }
-                        </select>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm px-3">
+                            <i class="bi bi-search me-1"></i> Filtrar
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary btn-sm px-3">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Mês Atual
+                        </a>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="bi bi-search"></i> Filtrar
-                    </button>
-                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-arrow-clockwise"></i> Mês Atual
-                    </a>
                 </form>
             </div>
         </div>

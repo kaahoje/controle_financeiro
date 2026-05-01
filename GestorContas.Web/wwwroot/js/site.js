@@ -10,6 +10,7 @@ function abrirModal(url, titulo, tamanho = '') {
     $.get(url, function (data) {
         $('#mainModalBody').html(data);
         bindFormEvents();
+        initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
     });
 }
 
@@ -39,6 +40,7 @@ function bindFormEvents() {
                     // Se falhar (validação), o controller deve retornar o PartialView com os erros
                     $('#mainModalBody').html(response);
                     bindFormEvents();
+                    initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
                 }
             },
             error: function (xhr) {
@@ -46,12 +48,30 @@ function bindFormEvents() {
                 if (xhr.status === 400 || xhr.status === 200) {
                     $('#mainModalBody').html(xhr.responseText);
                     bindFormEvents();
+                    initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
                 } else {
                     showToast('Ocorreu um erro ao salvar os dados.', 'Erro', 'danger');
                 }
             }
         });
     });
+}
+
+function initAutocomplete(selector, url) {
+    $(selector).autocomplete({
+        source: function (request, response) {
+            $.getJSON(url, { term: request.term }, response);
+        },
+        minLength: 2,
+        select: function (event, ui) {
+            $(this).val(ui.item.value);
+            return false;
+        }
+    }).autocomplete("instance")._renderItem = function (ul, item) {
+        return $("<li>")
+            .append("<div class='d-flex align-items-center py-1'><i class='bi bi-clock-history me-2 text-muted'></i>" + item.value + "</div>")
+            .appendTo(ul);
+    };
 }
 
 function showToast(message, title = 'Notificação', type = 'info') {
@@ -121,4 +141,6 @@ $(document).ready(function () {
             }
         });
     });
+
+    initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
 });

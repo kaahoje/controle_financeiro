@@ -6,26 +6,30 @@
 }
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="display-5 fw-bold text-primary">
-                    <i class="bi bi-cash-stack"></i> Lançamentos Financeiros
-                </h1>
-                <div class="btn-group shadow-sm">
-                    <a asp-action="Create" class="btn btn-success btn-lg btn-modal" title="Novo Lançamento">
-                        <i class="bi bi-plus-circle"></i> Novo Lançamento
-                    </a>
-                    <a asp-action="Transferencia" class="btn btn-primary btn-lg btn-modal" title="Transferência entre Contas">
-                        <i class="bi bi-arrow-left-right"></i> Transferência
-                    </a>
-                    <a asp-action="ImportarExtrato" class="btn btn-info btn-lg text-white btn-modal" title="Importar Extrato CSV" data-tamanho="modal-xl">
-                        <i class="bi bi-file-earmark-spreadsheet"></i> Importar Extrato
-                    </a>
+    <div class="page-header d-flex flex-column mb-4 pb-3 border-bottom">
+        <div class="header-title-container mb-3">
+            <h2 class="h3 fw-bold text-dark mb-0 d-flex align-items-center">
+                <div class="icon-box bg-primary-subtle text-primary rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                    <i class="bi bi-cash-stack fs-4"></i>
                 </div>
+                <span>Lançamentos Financeiros</span>
+            </h2>
+        </div>
+        <div class="header-actions-container">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="Create" class="btn btn-primary btn-modal shadow-sm px-3" title="Novo Lançamento">
+                    <i class="bi bi-plus-lg me-1"></i> Novo Lançamento
+                </a>
+                <a asp-action="Transferencia" class="btn btn-outline-primary btn-modal shadow-sm px-3" title="Transferência entre Contas">
+                    <i class="bi bi-arrow-left-right me-1"></i> Transferência
+                </a>
+                <a asp-action="ImportarExtrato" class="btn btn-outline-info btn-modal shadow-sm px-3" title="Importar Extrato CSV" data-tamanho="modal-xl">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Importar
+                </a>
             </div>
         </div>
     </div>
+
 
 
     <!-- Filtros -->

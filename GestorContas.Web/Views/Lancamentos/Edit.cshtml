@@ -14,7 +14,7 @@
             <div class="row g-3">
                 <div class="col-12">
                     <div class="form-floating">
-                        <input asp-for="Descricao" class="form-control" id="modal_edit_descricao" placeholder="Descrição" autofocus />
+                        <input asp-for="Descricao" class="form-control" id="modal_edit_descricao" placeholder="Descrição" autofocus autocomplete="off" />
                         <label asp-for="Descricao"><i class="bi bi-card-text"></i> Descrição</label>
                         <span asp-validation-for="Descricao" class="text-danger small"></span>
                     </div>
@@ -105,7 +105,7 @@ else
                             <div class="row g-3">
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <input asp-for="Descricao" class="form-control" id="descricao" autofocus />
+                                        <input asp-for="Descricao" class="form-control" id="descricao" autofocus autocomplete="off" />
                                         <label asp-for="Descricao">Descrição</label>
                                         <span asp-validation-for="Descricao" class="text-danger"></span>
                                     </div>

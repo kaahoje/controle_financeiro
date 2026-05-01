@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -10,10 +11,12 @@
     <link rel="stylesheet" href="~/GestorContas.Web.styles.css" asp-append-version="true" />
     <link rel="manifest" href="~/manifest.json">
     <link rel="shortcut icon" href="~/favicon.ico" type="image/x-icon" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">Controle financeiro</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
@@ -44,6 +47,22 @@
             </div>
         </nav>
     </header>
+    @{
+        var connectionString = Configuration.GetConnectionString("DefaultConnection");
+        var dbPath = connectionString?.Replace("Data Source=", "", StringComparison.OrdinalIgnoreCase);
+    }
+    @if (!string.IsNullOrEmpty(dbPath))
+    {
+        <div class="db-info-bar mb-3">
+            <div class="container">
+                <div class="db-info-content">
+                    <i class="bi bi-database-fill text-primary me-1"></i>
+                    <span class="d-none d-sm-inline">Base de Dados:</span>
+                    <span class="db-path-badge" title="@dbPath">@dbPath</span>
+                </div>
+            </div>
+        </div>
+    }
     <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
@@ -74,6 +93,7 @@
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
