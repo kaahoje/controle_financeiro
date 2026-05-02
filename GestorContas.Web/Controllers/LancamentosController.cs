@@ -94,16 +94,63 @@ namespace GestorContas.Web.Controllers
             return View(lancamentos);
         }
 
+        private async Task<DateTime> ObterDataUltimoLancamentoFiltrado(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia)
+        {
+            var dataAtual = DateTime.Today;
+            var mesAtual = mes ?? dataAtual.Month;
+            var anoAtual = ano ?? dataAtual.Year;
+
+            var query = _context.Lancamentos.AsQueryable();
+
+            if (mes != 0 && ano != 0)
+            {
+                query = query.Where(l => l.Data.Year == anoAtual && l.Data.Month == mesAtual);
+            }
+            else if (mes != 0)
+            {
+                query = query.Where(l => l.Data.Month == mesAtual);
+            }
+            else if (ano != 0)
+            {
+                query = query.Where(l => l.Data.Year == anoAtual);
+            }
+
+            if (categoriaId.HasValue)
+            {
+                query = query.Where(l => l.CategoriaId == categoriaId.Value);
+            }
+
+            if (contaId.HasValue)
+            {
+                query = query.Where(l => l.ContaId == contaId.Value);
+            }
+
+            if (tipo.HasValue)
+            {
+                query = query.Where(l => l.Tipo == tipo.Value);
+            }
+            if (paraTransferencia.HasValue)
+            {
+                query = query.Where(l => l.Categoria.ParaTransferencia == paraTransferencia.Value);
+            }
+
+            var ultimo = await query.OrderByDescending(l => l.Id).FirstOrDefaultAsync();
+            return ultimo?.Data ?? dataAtual;
+        }
+
         // GET: Lancamentos/Create
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia)
         {
             ViewData["CategoriaId"] = new SelectList(await _context.Categorias.OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
             ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
             
+            var dataInicial = await ObterDataUltimoLancamentoFiltrado(mes, ano, categoriaId, contaId, tipo, paraTransferencia);
+            var model = new Lancamento { Data = dataInicial };
+
             if (IsAjaxRequest)
-                return PartialView();
+                return PartialView(model);
                 
-            return View();
+            return View(model);
         }
 
         // POST: Lancamentos/Create
@@ -240,15 +287,18 @@ namespace GestorContas.Web.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        public async Task<IActionResult> Transferencia()
+        public async Task<IActionResult> Transferencia(int? mes, int? ano, int? categoriaId, int? contaId, TipoLancamento? tipo, bool? paraTransferencia)
         {
             ViewData["CategoriaId"] = new SelectList(await _context.Categorias.Where(c => c.ParaTransferencia).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
             ViewData["ContaId"] = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
             
+            var dataInicial = await ObterDataUltimoLancamentoFiltrado(mes, ano, categoriaId, contaId, tipo, paraTransferencia);
+            var model = new GestorContas.Web.Models.ViewModels.TransferenciaViewModel { Data = dataInicial };
+
             if (IsAjaxRequest)
-                return PartialView();
+                return PartialView(model);
                 
-            return View();
+            return View(model);
         }
 
         [HttpPost]

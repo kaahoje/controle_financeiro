@@ -7,11 +7,17 @@ function abrirModal(url, titulo, tamanho = '') {
     
     $('#mainModal').modal('show');
 
-    $.get(url, function (data) {
-        $('#mainModalBody').html(data);
-        bindFormEvents();
-        initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
-    });
+        $.get(url, function (data) {
+            $('#mainModalBody').html(data);
+            bindFormEvents();
+            initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
+            initMasks();
+            
+            // Foca na descrição após carregar o modal
+            setTimeout(function() {
+                $('#mainModalBody').find('[name="Descricao"]').focus();
+            }, 100);
+        });
 }
 
 function bindFormEvents() {
@@ -41,6 +47,11 @@ function bindFormEvents() {
                     $('#mainModalBody').html(response);
                     bindFormEvents();
                     initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
+                    initMasks();
+                    
+                    setTimeout(function() {
+                        $('#mainModalBody').find('.input-validation-error').first().focus();
+                    }, 100);
                 }
             },
             error: function (xhr) {
@@ -49,6 +60,11 @@ function bindFormEvents() {
                     $('#mainModalBody').html(xhr.responseText);
                     bindFormEvents();
                     initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
+                    initMasks();
+                    
+                    setTimeout(function() {
+                        $('#mainModalBody').find('[name="Descricao"]').focus();
+                    }, 100);
                 } else {
                     showToast('Ocorreu um erro ao salvar os dados.', 'Erro', 'danger');
                 }
@@ -107,6 +123,15 @@ $(document).ready(function () {
     $(document).on('click', '.btn-modal', function (e) {
         e.preventDefault();
         var url = $(this).attr('href') || $(this).data('url');
+        
+        // Passa os filtros atuais para o modal, caso existam (útil para Lançamentos)
+        const form = $('#formCadastro');
+        if (form.length > 0 && !url.includes('?')) {
+            url += '?' + form.serialize();
+        } else if (form.length > 0) {
+            url += '&' + form.serialize();
+        }
+        
         var titulo = $(this).attr('title') || $(this).data('titulo') || 'Cadastro';
         var tamanho = $(this).data('tamanho') || '';
         abrirModal(url, titulo, tamanho);
@@ -143,4 +168,9 @@ $(document).ready(function () {
     });
 
     initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
+    initMasks();
 });
+
+function initMasks() {
+    $('.money-mask').mask('#.##0,00', {reverse: true});
+}
