@@ -16,16 +16,19 @@
             </h2>
         </div>
         <div class="header-actions-container">
-            <div class="d-flex flex-wrap gap-2">
-                <a asp-action="Create" class="btn btn-primary btn-modal shadow-sm px-3" title="Novo Lançamento">
-                    <i class="bi bi-plus-lg me-1"></i> Novo Lançamento
-                </a>
-                <a asp-action="Transferencia" class="btn btn-outline-primary btn-modal shadow-sm px-3" title="Transferência entre Contas">
-                    <i class="bi bi-arrow-left-right me-1"></i> Transferência
-                </a>
-                <a asp-action="ImportarExtrato" class="btn btn-outline-info btn-modal shadow-sm px-3" title="Importar Extrato CSV" data-tamanho="modal-xl">
-                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Importar
-                </a>
+            <div class="d-flex flex-column gap-2">
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-action="Create" class="btn btn-primary btn-modal shadow-sm px-3" title="Novo Lançamento">
+                        <i class="bi bi-plus-lg me-1"></i> Novo Lançamento
+                    </a>
+                    <a asp-action="Transferencia" class="btn btn-outline-primary btn-modal shadow-sm px-3" title="Transferência entre Contas">
+                        <i class="bi bi-arrow-left-right me-1"></i> Transferência
+                    </a>
+                    <a asp-action="ImportarExtrato" class="btn btn-outline-info btn-modal shadow-sm px-3" title="Importar Extrato CSV" data-tamanho="modal-xl">
+                        <i class="bi bi-file-earmark-spreadsheet me-1"></i> Importar
+                    </a>
+                </div>
+                <div class="text-muted small"><kbd class="bg-light text-dark border shadow-sm">+</kbd> Atalho rápido para novo lançamento</div>
             </div>
         </div>
     </div>
@@ -283,15 +286,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
     <script>
         function Filtrar() {
-            const form = $('#formCadastro');
-            const url = form.attr('action') || window.location.pathname;
-            const formData = form.serialize();
-
-            $.get(url + '?' + formData, function (data) {
-                $('#indexFiltrada').html($(data).find('#indexFiltrada').html());
-            }).fail(function () {
-                console.error('Erro ao filtrar');
-            });
+            $('#formCadastro').submit();
         }
 
         $(function() {
@@ -308,6 +303,20 @@
             // Filtro automático para todos os selects e checkbox dentro do form de filtros
             $('#formCadastro select, #formCadastro input[type="checkbox"]').on('change', function() {
                 Filtrar();
+            });
+
+            // Atalho de teclado "+" para abrir "Novo Lançamento"
+            $(document).on('keydown', function(e) {
+                // Não disparar o atalho se o usuário estiver digitando em um input, select ou textarea
+                if ($(e.target).is('input, select, textarea')) {
+                    return;
+                }
+                
+                if (e.key === '+' || e.code === 'NumpadAdd') {
+                    e.preventDefault();
+                    // Localiza o botão "Novo Lançamento" via classe e título e clica nele
+                    $('.btn-modal[title="Novo Lançamento"]').first().click();
+                }
             });
         });
     </script>

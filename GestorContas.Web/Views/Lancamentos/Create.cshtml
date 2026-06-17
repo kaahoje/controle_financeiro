@@ -33,7 +33,7 @@
                 <!-- Data -->
                 <div class="col-md-6">
                     <div class="form-floating">
-                        <input asp-for="Data" asp-format="{0:yyyy-MM-dd}" class="form-control" id="modal_data" type="date" />
+                        <input asp-for="Data" asp-format="{0:yyyy-MM-dd}" class="form-control" id="modal_data" type="date" tabindex="-1" />
                         <label asp-for="Data"><i class="bi bi-calendar-event"></i> Data</label>
                         <span asp-validation-for="Data" class="text-danger small"></span>
                     </div>
@@ -66,7 +66,7 @@
                 <!-- Conta -->
                 <div class="col-md-6">
                     <div class="form-floating">
-                        <select asp-for="ContaId" class="form-select" asp-items="ViewBag.ContaId" id="modal_conta">
+                        <select asp-for="ContaId" class="form-select" asp-items="ViewBag.ContaId" id="modal_conta" tabindex="-1">
                             <option value="">Selecione a conta</option>
                         </select>
                         <label asp-for="ContaId"><i class="bi bi-wallet2"></i> Conta</label>
@@ -81,7 +81,7 @@
                 <button type="submit" class="btn btn-success me-2">
                     <i class="bi bi-check-circle"></i> Salvar Lançamento
                 </button>
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" tabindex="-1">Cancelar</button>
             </div>
         </form>
     </div>
@@ -133,7 +133,7 @@ else
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <input asp-for="Data" asp-format="{0:yyyy-MM-dd}" class="form-control" id="data" type="date" />
+                                        <input asp-for="Data" asp-format="{0:yyyy-MM-dd}" class="form-control" id="data" type="date" tabindex="-1" />
                                         <label asp-for="Data"><i class="bi bi-calendar-event"></i> Data</label>
                                         <span asp-validation-for="Data" class="text-danger small"></span>
                                     </div>
@@ -160,7 +160,7 @@ else
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-floating">
-                                        <select asp-for="ContaId" class="form-select" asp-items="ViewBag.ContaId" id="conta">
+                                        <select asp-for="ContaId" class="form-select" asp-items="ViewBag.ContaId" id="conta" tabindex="-1">
                                             <option value="">Selecione a conta</option>
                                         </select>
                                         <label asp-for="ContaId"><i class="bi bi-wallet2"></i> Conta</label>

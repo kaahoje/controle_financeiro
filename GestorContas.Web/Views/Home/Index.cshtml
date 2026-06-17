@@ -5,277 +5,276 @@
 }
 
 <div class="container-fluid">
-    <!-- Header -->
-    <div class="page-header d-flex flex-column mb-4 pb-3 border-bottom">
-        <div class="header-title-container mb-3">
-            <h2 class="h3 fw-bold text-dark mb-0 d-flex align-items-center">
-                <div class="icon-box bg-primary-subtle text-primary rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
-                    <i class="bi bi-speedometer2 fs-4"></i>
-                </div>
-                <span>Dashboard Financeiro</span>
-            </h2>
-        </div>
-        <div class="header-actions-container">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                <p class="lead text-muted mb-0">
-                    Resumo financeiro de <strong>@Model.ResumoMensal.MesAno.ToString("MMMM/yyyy")</strong>
-                </p>
+    <div id="dashboardContainer">
+        <!-- Header -->
+        <div class="page-header d-flex flex-column mb-4 pb-3 border-bottom">
+            <div class="header-title-container mb-3">
+                <h2 class="h3 fw-bold text-dark mb-0 d-flex align-items-center">
+                    <div class="icon-box bg-primary-subtle text-primary rounded-3 me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-speedometer2 fs-4"></i>
+                    </div>
+                    <span>Dashboard Financeiro</span>
+                </h2>
+            </div>
+            <div class="header-actions-container">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                    <p class="lead text-muted mb-0">
+                        Resumo financeiro de <strong>@Model.ResumoMensal.MesAno.ToString("MMMM/yyyy")</strong>
+                    </p>
 
-                <form method="get" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-end">
-                    <div class="d-flex gap-2">
-                        <div>
-                            <label class="form-label fw-bold mb-1 small">Mês</label>
-                            <select name="mes" class="form-select form-select-sm" style="min-width: 120px;">
-                                <option value="1" selected="@(ViewBag.MesSelecionado == 1)">Janeiro</option>
-                                <option value="2" selected="@(ViewBag.MesSelecionado == 2)">Fevereiro</option>
-                                <option value="3" selected="@(ViewBag.MesSelecionado == 3)">Março</option>
-                                <option value="4" selected="@(ViewBag.MesSelecionado == 4)">Abril</option>
-                                <option value="5" selected="@(ViewBag.MesSelecionado == 5)">Maio</option>
-                                <option value="6" selected="@(ViewBag.MesSelecionado == 6)">Junho</option>
-                                <option value="7" selected="@(ViewBag.MesSelecionado == 7)">Julho</option>
-                                <option value="8" selected="@(ViewBag.MesSelecionado == 8)">Agosto</option>
-                                <option value="9" selected="@(ViewBag.MesSelecionado == 9)">Setembro</option>
-                                <option value="10" selected="@(ViewBag.MesSelecionado == 10)">Outubro</option>
-                                <option value="11" selected="@(ViewBag.MesSelecionado == 11)">Novembro</option>
-                                <option value="12" selected="@(ViewBag.MesSelecionado == 12)">Dezembro</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label fw-bold mb-1 small">Ano</label>
-                            <select name="ano" class="form-select form-select-sm" style="min-width: 100px;">
-                                @for (int ano = DateTime.Today.Year; ano >= DateTime.Today.Year - 5; ano--)
-                                {
-                                    <option value="@ano" selected="@(ViewBag.AnoSelecionado == ano)">@ano</option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm px-3">
-                            <i class="bi bi-search me-1"></i> Filtrar
-                        </button>
-                        <a asp-action="Index" class="btn btn-outline-secondary btn-sm px-3">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Mês Atual
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Cards de Resumo Mensal -->
-    <div class="row mb-4 g-3">
-        <div class="col-md-4">
-            <div class="card shadow-sm border-success h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2">Entradas do Mês</h6>
-                    <div class="d-flex align-items-center">
-                        <div class="display-6 fw-bold text-success me-3">
-                            <i class="bi bi-arrow-up-circle"></i>
-                        </div>
-                        <div>
-                            <h3 class="fw-bold mb-0 text-success">@Model.ResumoMensal.TotalEntradas.ToString("C")</h3>
-                            <small class="text-muted">Acumulado em @Model.ResumoMensal.MesAno.ToString("MMMM")</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm border-danger h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2">Saídas do Mês</h6>
-                    <div class="d-flex align-items-center">
-                        <div class="display-6 fw-bold text-danger me-3">
-                            <i class="bi bi-arrow-down-circle"></i>
-                        </div>
-                        <div>
-                            <h3 class="fw-bold mb-0 text-danger">@Model.ResumoMensal.TotalSaidas.ToString("C")</h3>
-                            <small class="text-muted">Acumulado em @Model.ResumoMensal.MesAno.ToString("MMMM")</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card shadow-sm border-primary h-100">
-                <div class="card-body">
-                    <h6 class="text-muted text-uppercase mb-2">Balanço Mensal</h6>
-                    <div class="d-flex align-items-center">
-                        <div class="display-6 fw-bold @(Model.ResumoMensal.SaldoMensal >= 0 ? "text-primary" : "text-danger") me-3">
-                            <i class="bi bi-wallet2"></i>
-                        </div>
-                        <div>
-                            <h3 class="fw-bold mb-0 @(Model.ResumoMensal.SaldoMensal >= 0 ? "text-primary" : "text-danger")">
-                                @Model.ResumoMensal.SaldoMensal.ToString("C")
-                            </h3>
-                            <small class="text-muted">Resultado do período</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mb-4">
-        <!-- Minhas Contas -->
-        <div class="col-lg-4 mb-4 mb-lg-0">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white border-bottom-0 pt-3">
-                    <h5 class="card-title fw-bold text-dark mb-0">
-                        <i class="bi bi-bank"></i> Minhas Contas
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush">
-                        @foreach (var conta in Model.Contas)
-                        {
-                            <div class="list-group-item d-flex justify-content-between align-items-center py-3">
-                                <div>
-                                    <h6 class="mb-0 fw-semibold">@conta.Nome</h6>
-                                    @if (!string.IsNullOrEmpty(conta.Descricao))
+                    <form id="formFiltroDashboard" method="get" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-end">
+                        <div class="d-flex gap-2">
+                            <div>
+                                <label class="form-label fw-bold mb-1 small">Mês</label>
+                                <select name="mes" id="filtroMesDashboard" class="form-select form-select-sm" style="min-width: 120px;">
+                                    <option value="1" selected="@(ViewBag.MesSelecionado == 1)">Janeiro</option>
+                                    <option value="2" selected="@(ViewBag.MesSelecionado == 2)">Fevereiro</option>
+                                    <option value="3" selected="@(ViewBag.MesSelecionado == 3)">Março</option>
+                                    <option value="4" selected="@(ViewBag.MesSelecionado == 4)">Abril</option>
+                                    <option value="5" selected="@(ViewBag.MesSelecionado == 5)">Maio</option>
+                                    <option value="6" selected="@(ViewBag.MesSelecionado == 6)">Junho</option>
+                                    <option value="7" selected="@(ViewBag.MesSelecionado == 7)">Julho</option>
+                                    <option value="8" selected="@(ViewBag.MesSelecionado == 8)">Agosto</option>
+                                    <option value="9" selected="@(ViewBag.MesSelecionado == 9)">Setembro</option>
+                                    <option value="10" selected="@(ViewBag.MesSelecionado == 10)">Outubro</option>
+                                    <option value="11" selected="@(ViewBag.MesSelecionado == 11)">Novembro</option>
+                                    <option value="12" selected="@(ViewBag.MesSelecionado == 12)">Dezembro</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label fw-bold mb-1 small">Ano</label>
+                                <select name="ano" id="filtroAnoDashboard" class="form-select form-select-sm" style="min-width: 100px;">
+                                    @for (int ano = DateTime.Today.Year; ano >= DateTime.Today.Year - 5; ano--)
                                     {
-                                        <small class="text-muted">@conta.Descricao</small>
+                                        <option value="@ano" selected="@(ViewBag.AnoSelecionado == ano)">@ano</option>
                                     }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm px-3">
+                                <i class="bi bi-arrow-clockwise me-1"></i> Mês Atual
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cards de Resumo Mensal -->
+        <div class="row mb-4 g-3">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-success h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted text-uppercase mb-2">Entradas do Mês</h6>
+                        <div class="d-flex align-items-center">
+                            <div class="display-6 fw-bold text-success me-3">
+                                <i class="bi bi-arrow-up-circle"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-0 text-success">@Model.ResumoMensal.TotalEntradas.ToString("C")</h3>
+                                <small class="text-muted">Acumulado em @Model.ResumoMensal.MesAno.ToString("MMMM")</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-danger h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted text-uppercase mb-2">Saídas do Mês</h6>
+                        <div class="d-flex align-items-center">
+                            <div class="display-6 fw-bold text-danger me-3">
+                                <i class="bi bi-arrow-down-circle"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-0 text-danger">@Model.ResumoMensal.TotalSaidas.ToString("C")</h3>
+                                <small class="text-muted">Acumulado em @Model.ResumoMensal.MesAno.ToString("MMMM")</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-primary h-100">
+                    <div class="card-body">
+                        <h6 class="text-muted text-uppercase mb-2">Balanço Mensal</h6>
+                        <div class="d-flex align-items-center">
+                            <div class="display-6 fw-bold @(Model.ResumoMensal.SaldoMensal >= 0 ? "text-primary" : "text-danger") me-3">
+                                <i class="bi bi-wallet2"></i>
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-0 @(Model.ResumoMensal.SaldoMensal >= 0 ? "text-primary" : "text-danger")">
+                                    @Model.ResumoMensal.SaldoMensal.ToString("C")
+                                </h3>
+                                <small class="text-muted">Resultado do período</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- Minhas Contas -->
+            <div class="col-lg-4 mb-4 mb-lg-0">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white border-bottom-0 pt-3">
+                        <h5 class="card-title fw-bold text-dark mb-0">
+                            <i class="bi bi-bank"></i> Minhas Contas
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            @foreach (var conta in Model.Contas)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">@conta.Nome</h6>
+                                        @if (!string.IsNullOrEmpty(conta.Descricao))
+                                        {
+                                            <small class="text-muted">@conta.Descricao</small>
+                                        }
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="fs-5 fw-bold @(conta.Saldo >= 0 ? "text-dark" : "text-danger")">
+                                            @conta.Saldo.ToString("C")
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="text-end">
-                                    <span class="fs-5 fw-bold @(conta.Saldo >= 0 ? "text-dark" : "text-danger")">
-                                        @conta.Saldo.ToString("C")
+                            }
+                            <div class="list-group-item bg-light py-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="mb-0 fw-bold text-uppercase text-muted" style="font-size: 0.8rem;">Saldo Total</h6>
+                                    <span class="fs-5 fw-bold @(Model.Contas.Sum(c => c.Saldo) >= 0 ? "text-success" : "text-danger")">
+                                        @Model.Contas.Sum(c => c.Saldo).ToString("C")
                                     </span>
                                 </div>
-                            </div>
-                        }
-                        <div class="list-group-item bg-light py-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="mb-0 fw-bold text-uppercase text-muted" style="font-size: 0.8rem;">Saldo Total</h6>
-                                <span class="fs-5 fw-bold @(Model.Contas.Sum(c => c.Saldo) >= 0 ? "text-success" : "text-danger")">
-                                    @Model.Contas.Sum(c => c.Saldo).ToString("C")
-                                </span>
-                            </div>
-                            <div class="text-center">
-                                <a asp-controller="Contas" asp-action="Index" class="btn btn-sm btn-outline-primary w-100">
-                                    Gerenciar Contas
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Gráficos -->
-        <div class="col-lg-8">
-            <div class="row g-4">
-                <div class="col-md-6">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-white pt-3">
-                            <h5 class="card-title fw-bold mb-0">@Model.GraficoFluxoCaixa.Titulo</h5>
-                        </div>
-                        <div class="card-body">
-                            <canvas id="chartFluxoCaixa"></canvas>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card shadow-sm h-100">
-                        <div class="card-header bg-white pt-3">
-                            <h5 class="card-title fw-bold mb-0">@Model.GraficoDespesas.Titulo</h5>
-                        </div>
-                        <div class="card-body">
-                            @if (Model.GraficoDespesas.Valores != null && Model.GraficoDespesas.Valores.Any())
-                            {
-                                <canvas id="chartDespesas"></canvas>
-                            }
-                            else
-                            {
-                                <div class="text-center py-5 text-muted">
-                                    <i class="bi bi-pie-chart display-4"></i>
-                                    <p class="mt-2">Sem dados de despesas neste mês</p>
+                                <div class="text-center">
+                                    <a asp-controller="Contas" asp-action="Index" class="btn btn-sm btn-outline-primary w-100">
+                                        Gerenciar Contas
+                                    </a>
                                 </div>
-                            }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="col-lg-8">
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-white pt-3">
+                                <h5 class="card-title fw-bold mb-0">@Model.GraficoFluxoCaixa.Titulo</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="chartFluxoCaixa"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-white pt-3">
+                                <h5 class="card-title fw-bold mb-0">@Model.GraficoDespesas.Titulo</h5>
+                            </div>
+                            <div class="card-body">
+                                @if (Model.GraficoDespesas.Valores != null && Model.GraficoDespesas.Valores.Any())
+                                {
+                                    <canvas id="chartDespesas"></canvas>
+                                }
+                                else
+                                {
+                                    <div class="text-center py-5 text-muted">
+                                        <i class="bi bi-pie-chart display-4"></i>
+                                        <p class="mt-2">Sem dados de despesas neste mês</p>
+                                    </div>
+                                }
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Gráfico Evolução de Saldo -->
-    <div class="row mb-0">
-        <div class="col-12">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-white pt-3">
-                    <h5 class="card-title fw-bold mb-0">@Model.GraficoEvolucaoSaldo.Titulo</h5>
-                </div>
-                <div class="card-body">
-                    <div style="height: 400px;">
-                        <canvas id="chartEvolucaoSaldo"></canvas>
+        <!-- Gráfico Evolução de Saldo -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-white pt-3">
+                        <h5 class="card-title fw-bold mb-0">@Model.GraficoEvolucaoSaldo.Titulo</h5>
+                    </div>
+                    <div class="card-body">
+                        <div style="height: 400px;">
+                            <canvas id="chartEvolucaoSaldo"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tabela de Despesas por Categoria -->
-    <div class="row mt-0">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white pt-3">
-                    <h5 class="card-title fw-bold mb-0">
-                        <i class="bi bi-list-ul"></i> Detalhamento de Despesas por Categoria
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="ps-4">Categoria</th>
-                                    <th class="text-end">Total Gasto</th>
-                                    <th class="text-center" style="width: 200px;">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var item in Model.DespesasPorCategoria)
+        <!-- Tabela de Despesas por Categoria -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white pt-3">
+                        <h5 class="card-title fw-bold mb-0">
+                            <i class="bi bi-list-ul"></i> Detalhamento de Despesas por Categoria
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">Categoria</th>
+                                        <th class="text-end">Total Gasto</th>
+                                        <th class="text-center" style="width: 200px;">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.DespesasPorCategoria)
+                                    {
+                                        <tr>
+                                            <td class="ps-4">
+                                                <span class="fw-semibold">@item.CategoriaNome</span>
+                                            </td>
+                                            <td class="text-end text-danger fw-bold">
+                                                @item.Total.ToString("C")
+                                            </td>
+                                            <td class="text-center">
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        onclick="abrirDetalhes(@ViewBag.MesSelecionado, @ViewBag.AnoSelecionado, @item.CategoriaId)">
+                                                    <i class="bi bi-eye"></i> Ver Lançamentos
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                    @if (!Model.DespesasPorCategoria.Any())
+                                    {
+                                        <tr>
+                                            <td colspan="3" class="text-center py-4 text-muted">
+                                                Nenhuma despesa registrada para este período.
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                @if (Model.DespesasPorCategoria.Any())
                                 {
-                                    <tr>
-                                        <td class="ps-4">
-                                            <span class="fw-semibold">@item.CategoriaNome</span>
-                                        </td>
-                                        <td class="text-end text-danger fw-bold">
-                                            @item.Total.ToString("C")
-                                        </td>
-                                        <td class="text-center">
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-outline-primary"
-                                                    onclick="abrirDetalhes(@ViewBag.MesSelecionado, @ViewBag.AnoSelecionado, @item.CategoriaId)">
-                                                <i class="bi bi-eye"></i> Ver Lançamentos
-                                            </button>
-                                        </td>
-                                    </tr>
+                                    <tfoot class="table-light fw-bold">
+                                        <tr>
+                                            <td class="ps-4 text-uppercase small text-muted">Total de Despesas</td>
+                                            <td class="text-end text-danger">
+                                                @Model.DespesasPorCategoria.Sum(x => x.Total).ToString("C")
+                                            </td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
                                 }
-                                @if (!Model.DespesasPorCategoria.Any())
-                                {
-                                    <tr>
-                                        <td colspan="3" class="text-center py-4 text-muted">
-                                            Nenhuma despesa registrada para este período.
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                            @if (Model.DespesasPorCategoria.Any())
-                            {
-                                <tfoot class="table-light fw-bold">
-                                    <tr>
-                                        <td class="ps-4 text-uppercase small text-muted">Total de Despesas</td>
-                                        <td class="text-end text-danger">
-                                            @Model.DespesasPorCategoria.Sum(x => x.Total).ToString("C")
-                                        </td>
-                                        <td></td>
-                                    </tr>
-                                </tfoot>
-                            }
-                        </table>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -346,7 +345,7 @@
         // Gráfico Fluxo de Caixa
         const ctxFluxo = document.getElementById('chartFluxoCaixa');
         if (ctxFluxo) {
-            new Chart(ctxFluxo, {
+            window.chartFluxoCaixaInst = new Chart(ctxFluxo, {
                 type: 'bar',
                 data: {
                     labels: @Json.Serialize(Model.GraficoFluxoCaixa.Labels),
@@ -392,7 +391,7 @@
                 ctxDespesas.parentElement.style.height = `${desiredHeight}px`;
             }
 
-            new Chart(ctxDespesas, {
+            window.chartDespesasInst = new Chart(ctxDespesas, {
                 type: 'bar',
                 data: {
                     labels: despesasLabels,
@@ -441,7 +440,7 @@
         // Gráfico Evolução de Saldo
         const ctxEvolucao = document.getElementById('chartEvolucaoSaldo');
         if (ctxEvolucao) {
-            new Chart(ctxEvolucao, {
+            window.chartEvolucaoSaldoInst = new Chart(ctxEvolucao, {
                 type: 'line',
                 data: {
                     labels: @Json.Serialize(Model.GraficoEvolucaoSaldo.Labels),
@@ -500,5 +499,58 @@
                         </div>`;
                 });
         }
+
+        // Auto-filtrar ao alterar mes ou ano no dashboard usando AJAX
+        $(function() {
+            $(document).on('change', '#formFiltroDashboard select', function() {
+                const form = $('#formFiltroDashboard');
+                const url = form.attr('action') || window.location.pathname;
+                const formData = form.serialize();
+
+                $.get(url + '?' + formData, function (data) {
+                    // Substitui o dashboardContainer com o novo conteúdo retornado
+                    $('#dashboardContainer').html($(data).find('#dashboardContainer').html());
+                    
+                    // Como o HTML foi substituído, precisamos reinicializar os gráficos com os dados atualizados que vieram no novo HTML.
+                    // Para garantir que o Chart.js encontre os novos canvases e recrie os gráficos, vamos ler os novos scripts que foram retornados e reexecutá-los.
+                    const scriptsHtml = $(data).filter('script').html() || $(data).find('script').html();
+                    
+                    // Destruir gráficos anteriores se existirem (para evitar erros do Chart.js de canvas já em uso)
+                    if (window.chartFluxoCaixaInst) window.chartFluxoCaixaInst.destroy();
+                    if (window.chartDespesasInst) window.chartDespesasInst.destroy();
+                    if (window.chartEvolucaoSaldoInst) window.chartEvolucaoSaldoInst.destroy();
+
+                    // Obter os scripts executáveis do retorno AJAX e rodar
+                    const responseDoc = document.createElement('html');
+                    responseDoc.innerHTML = data;
+                    const scripts = responseDoc.querySelectorAll('script');
+                    scripts.forEach(oldScript => {
+                        if (oldScript.text && !oldScript.src) {
+                            try {
+                                // Remover let/const duplicados ou rodar num escopo isolado
+                                const cleanCode = oldScript.text
+                                    .replace(/const ctxFluxo/g, 'var ctxFluxo')
+                                    .replace(/const ctxDespesas/g, 'var ctxDespesas')
+                                    .replace(/const ctxEvolucao/g, 'var ctxEvolucao')
+                                    .replace(/const brl/g, 'var brl')
+                                    .replace(/const valueLabelPlugin/g, 'var valueLabelPlugin');
+                                    
+                                // Redireciona a atribuição do Chart para instâncias globais para podermos destruí-las depois
+                                const finalCode = cleanCode
+                                    .replace(/new Chart\(ctxFluxo/g, 'window.chartFluxoCaixaInst = new Chart(ctxFluxo')
+                                    .replace(/new Chart\(ctxDespesas/g, 'window.chartDespesasInst = new Chart(ctxDespesas')
+                                    .replace(/new Chart\(ctxEvolucao/g, 'window.chartEvolucaoSaldoInst = new Chart(ctxEvolucao');
+
+                                eval(finalCode);
+                            } catch (e) {
+                                console.error('Erro ao reinicializar gráficos:', e);
+                            }
+                        }
+                    });
+                }).fail(function () {
+                    console.error('Erro ao filtrar dashboard via AJAX');
+                });
+            });
+        });
     </script>
 }
