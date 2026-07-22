@@ -180,6 +180,12 @@
                                 @{
                                     DateTime? ultimaData = null;
                                     bool agrupar = ViewBag.AgruparPorData ?? false;
+                                    var lancamentosDuplicados = Model
+                                        .GroupBy(x => new { x.Data.Date, x.Valor, x.Tipo, x.ContaId })
+                                        .Where(g => g.Count() > 1)
+                                        .SelectMany(g => g)
+                                        .Select(x => x.Id)
+                                        .ToHashSet();
                                 }
                                 @foreach (var item in Model)
                                 {
@@ -200,7 +206,7 @@
                                             </td>
                                         </tr>
                                     }
-                                    <tr>
+                                    <tr class="@(lancamentosDuplicados.Contains(item.Id) ? "table-warning" : "")">
                                         <td>
                                             @if (!agrupar)
                                             {
@@ -213,7 +219,13 @@
                                                 <span class="text-muted small">#@item.Id</span>
                                             }
                                         </td>
-                                        <td class="fw-semibold">@item.Descricao</td>
+                                        <td class="fw-semibold">
+                                            @item.Descricao
+                                            @if (lancamentosDuplicados.Contains(item.Id))
+                                            {
+                                                <span class="badge bg-warning text-dark ms-1" title="Existe outro lançamento idêntico no mesmo dia (mesmo valor, tipo e conta)"><i class="bi bi-exclamation-triangle-fill"></i> Duplicado</span>
+                                            }
+                                        </td>
                                         <td>
                                             <span class="badge bg-info">
                                                 @item.Categoria?.Nome
