@@ -456,5 +456,66 @@ namespace GestorContas.Web.Controllers
         {
             return _context.Lancamentos.Any(e => e.Id == id);
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VerificarDuplicados([FromBody] VerificarDuplicadosRequest request)
+        {
+            if (request == null || request.Lancamentos == null || !request.Lancamentos.Any())
+            {
+                return Json(new { success = true, resultados = new List<object>() });
+            }
+
+            var datas = request.Lancamentos.Select(l => l.Data.Date).Distinct().ToList();
+            if (!datas.Any())
+            {
+                return Json(new { success = true, resultados = new List<object>() });
+            }
+
+            var minDate = datas.Min();
+            var maxDate = datas.Max();
+
+            var existentes = await _context.Lancamentos
+                .Where(l => l.ContaId == request.ContaId && l.Data >= minDate && l.Data <= maxDate)
+                .Select(l => new { l.Id, l.Data, l.Valor, l.Tipo, l.Descricao })
+                .ToListAsync();
+
+            var matchedIds = new HashSet<int>();
+            var resultados = new List<object>();
+
+            foreach (var item in request.Lancamentos)
+            {
+                var match = existentes.FirstOrDefault(e => 
+                    e.Data.Date == item.Data.Date && 
+                    e.Valor == item.Valor && 
+                    (int)e.Tipo == item.Tipo &&
+                    !matchedIds.Contains(e.Id));
+
+                if (match != null)
+                {
+                    matchedIds.Add(match.Id);
+                    resultados.Add(new { status = "duplicado", dbId = match.Id, descricaoDb = match.Descricao });
+                }
+                else
+                {
+                    resultados.Add(new { status = "novo" });
+                }
+            }
+
+            return Json(new { success = true, resultados });
+        }
+    }
+
+    public class VerificarDuplicadosRequest
+    {
+        public int ContaId { get; set; }
+        public List<LancamentoImportacaoDto> Lancamentos { get; set; } = new();
+    }
+
+    public class LancamentoImportacaoDto
+    {
+        public DateTime Data { get; set; }
+        public decimal Valor { get; set; }
+        public int Tipo { get; set; }
     }
 }

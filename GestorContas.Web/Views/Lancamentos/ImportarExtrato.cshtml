@@ -23,11 +23,11 @@
                     <div class="row mb-4">
                         <div class="col-md-12">
                             <div id="drop-zone" class="border border-2 border-dashed rounded-3 p-5 text-center bg-light cursor-pointer" style="transition: all 0.3s ease;">
-                                <i class="bi bi-filetype-csv display-1 text-primary mb-3"></i>
-                                <h5>Arraste o arquivo CSV aqui</h5>
+                                <i class="bi bi-file-earmark-arrow-up display-1 text-primary mb-3"></i>
+                                <h5>Arraste o arquivo CSV ou OFX aqui</h5>
                                 <p class="text-muted">Ou clique para selecionar um arquivo</p>
-                                <input type="file" id="fileInput" accept=".csv" class="d-none" />
-                                <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Selecionar Arquivo CSV</button>
+                                <input type="file" id="fileInput" accept=".csv,.ofx" class="d-none" />
+                                <button type="button" class="btn btn-primary" onclick="document.getElementById('fileInput').click()">Selecionar Arquivo (CSV / OFX)</button>
                             </div>
                         </div>
                     </div>
@@ -64,11 +64,13 @@
                             <table class="table table-hover align-middle border" id="import-table">
                                 <thead class="table-light sticky-top">
                                     <tr>
+                                        <th style="width: 45px;" class="text-center"><input type="checkbox" id="chk-select-all" class="form-check-input" checked></th>
                                         <th style="width: 130px;">Data</th>
                                         <th>Descrição</th>
                                         <th style="width: 150px;">Valor</th>
                                         <th style="width: 110px;">Tipo</th>
                                         <th style="width: 200px;">Categoria</th>
+                                        <th style="width: 130px;">Status</th>
                                         <th style="width: 70px;" class="text-center">Ações</th>
                                     </tr>
                                 </thead>
@@ -160,18 +162,25 @@
         });
 
         function handleFile(file) {
-            if (!file.name.toLowerCase().endsWith('.csv')) {
-                Swal.fire('Erro', 'Por favor, selecione um arquivo CSV válido.', 'error');
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.csv') && !fileName.endsWith('.ofx')) {
+                Swal.fire('Erro', 'Por favor, selecione um arquivo CSV ou OFX válido.', 'error');
                 return;
             }
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
-                parseCsv(text);
+                if (fileName.endsWith('.ofx')) {
+                    parseOfx(text);
+                } else {
+                    parseCsv(text);
+                }
             };
             reader.readAsText(file, 'ISO-8859-1');
         }
+
+        let parsedLancamentos = [];
 
         function parseCsv(text) {
             processingStatus.classList.remove('d-none');
@@ -211,9 +220,109 @@
                 });
             }
 
-            displayResults(lancamentos);
-            processingStatus.classList.add('d-none');
-            resultsContainer.classList.remove('d-none');
+            parsedLancamentos = lancamentos;
+            verificarDuplicadosEDisplay();
+        }
+
+        function parseOfx(text) {
+            processingStatus.classList.remove('d-none');
+            resultsContainer.classList.add('d-none');
+            importTbody.innerHTML = '';
+
+            const blocks = text.split(/<STMTTRN>/i);
+            const lancamentos = [];
+
+            for (let i = 1; i < blocks.length; i++) {
+                const block = blocks[i].split(/<\/STMTTRN>/i)[0];
+                
+                const trntype = getTagValue(block, 'TRNTYPE');
+                const dtposted = getTagValue(block, 'DTPOSTED');
+                const trnamt = getTagValue(block, 'TRNAMT');
+                const memo = getTagValue(block, 'MEMO') || getTagValue(block, 'NAME') || 'Sem descrição';
+
+                if (!dtposted || !trnamt) continue;
+
+                const year = dtposted.substring(0, 4);
+                const month = dtposted.substring(4, 6);
+                const day = dtposted.substring(6, 8);
+                const dataIso = `${year}-${month}-${day}`;
+
+                const valor = parseFloat(trnamt);
+                if (isNaN(valor)) continue;
+
+                const tipo = (valor < 0 || trntype.toUpperCase() === 'DEBIT') ? 2 : 1;
+
+                lancamentos.push({
+                    data: dataIso,
+                    descricao: memo,
+                    valor: Math.abs(valor),
+                    tipo: tipo
+                });
+            }
+
+            parsedLancamentos = lancamentos;
+            verificarDuplicadosEDisplay();
+        }
+
+        function getTagValue(block, tag) {
+            const regex = new RegExp('<' + tag + '>([^<\\r\\n]+)', 'i');
+            const match = block.match(regex);
+            return match ? match[1].trim() : '';
+        }
+
+        async function verificarDuplicadosEDisplay() {
+            if (parsedLancamentos.length === 0) {
+                displayResults([]);
+                return;
+            }
+
+            const contaId = parseInt(globalConta.value);
+            if (isNaN(contaId)) {
+                displayResults(parsedLancamentos.map(l => ({ ...l, status: 'novo' })));
+                return;
+            }
+
+            processingStatus.classList.remove('d-none');
+            document.getElementById('status-text').innerText = "Verificando lançamentos duplicados...";
+            resultsContainer.classList.add('d-none');
+
+            try {
+                const dtos = parsedLancamentos.map(l => ({
+                    Data: l.data,
+                    Valor: l.valor,
+                    Tipo: l.tipo
+                }));
+
+                const response = await fetch('@Url.Action("VerificarDuplicados", "Lancamentos")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        ContaId: contaId,
+                        Lancamentos: dtos
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success && result.resultados) {
+                    const lancamentosComStatus = parsedLancamentos.map((l, idx) => ({
+                        ...l,
+                        status: result.resultados[idx].status,
+                        descricaoDb: result.resultados[idx].descricaoDb
+                    }));
+                    displayResults(lancamentosComStatus);
+                } else {
+                    displayResults(parsedLancamentos.map(l => ({ ...l, status: 'novo' })));
+                }
+            } catch (error) {
+                console.error("Erro ao verificar duplicados:", error);
+                displayResults(parsedLancamentos.map(l => ({ ...l, status: 'novo' })));
+            } finally {
+                processingStatus.classList.add('d-none');
+                resultsContainer.classList.remove('d-none');
+            }
         }
 
         function displayResults(lancamentos) {
@@ -221,13 +330,25 @@
             document.getElementById('item-count').innerText = `${lancamentos.length} itens`;
             
             if (lancamentos.length === 0) {
-                importTbody.innerHTML = '<tr><td colspan="7" class="text-center p-4">Nenhum lançamento válido encontrado no arquivo.</td></tr>';
+                importTbody.innerHTML = '<tr><td colspan="9" class="text-center p-4">Nenhum lançamento válido encontrado no arquivo.</td></tr>';
                 return;
+            }
+
+            const chkSelectAll = document.getElementById('chk-select-all');
+            if (chkSelectAll) {
+                chkSelectAll.checked = lancamentos.some(l => l.status === 'novo');
             }
 
             lancamentos.forEach((l, index) => {
                 const row = document.createElement('tr');
+                if (l.status === 'duplicado') {
+                    row.classList.add('table-warning-bg');
+                }
+                
                 row.innerHTML = `
+                    <td class="text-center">
+                        <input type="checkbox" class="form-check-input item-select" ${l.status === 'novo' ? 'checked' : ''}>
+                    </td>
                     <td><input type="date" class="form-control form-control-sm item-data bg-light" value="${l.data}" readonly tabindex="-1"></td>
                     <td><input type="text" class="form-control form-control-sm item-descricao" value="${l.descricao}" list="lista-descricoes" autocomplete="off"></td>
                     <td>
@@ -246,6 +367,11 @@
                         <select class="form-select form-select-sm item-categoria">
                             ${tplCategoria.innerHTML}
                         </select>
+                    </td>
+                    <td>
+                        ${l.status === 'duplicado' 
+                            ? `<span class="badge bg-warning text-dark" title="Já cadastrado na base: ${l.descricaoDb || ''}"><i class="bi bi-exclamation-triangle-fill me-1"></i>Duplicado</span>` 
+                            : '<span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Falta Lançar</span>'}
                     </td>
                     <td class="text-center">
                         <button type="button" class="btn btn-outline-danger btn-sm btn-remove-row" title="Excluir Linha" tabindex="-1">
@@ -271,6 +397,22 @@
             }
         }
 
+        const chkSelectAll = document.getElementById('chk-select-all');
+        if (chkSelectAll) {
+            chkSelectAll.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                importTbody.querySelectorAll('.item-select').forEach(cb => {
+                    cb.checked = checked;
+                });
+            });
+        }
+
+        globalConta.addEventListener('change', () => {
+            if (parsedLancamentos.length > 0) {
+                verificarDuplicadosEDisplay();
+            }
+        });
+
         document.getElementById('btn-clear-all').addEventListener('click', () => {
             Swal.fire({
                 title: 'Tem certeza?',
@@ -284,6 +426,7 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     importTbody.innerHTML = '';
+                    parsedLancamentos = [];
                     updateCount();
                 }
             });
@@ -301,15 +444,23 @@
 
             const lancamentos = [];
             rows.forEach(row => {
-                lancamentos.push({
-                    Data: row.querySelector('.item-data').value,
-                    Descricao: row.querySelector('.item-descricao').value,
-                    Valor: parseFloat(row.querySelector('.item-valor').value),
-                    Tipo: parseInt(row.querySelector('.item-tipo').value),
-                    CategoriaId: parseInt(row.querySelector('.item-categoria').value),
-                    ContaId: contaId
-                });
+                const chk = row.querySelector('.item-select');
+                if (chk && chk.checked) {
+                    lancamentos.push({
+                        Data: row.querySelector('.item-data').value,
+                        Descricao: row.querySelector('.item-descricao').value,
+                        Valor: parseFloat(row.querySelector('.item-valor').value),
+                        Tipo: parseInt(row.querySelector('.item-tipo').value),
+                        CategoriaId: parseInt(row.querySelector('.item-categoria').value),
+                        ContaId: contaId
+                    });
+                }
             });
+
+            if (lancamentos.length === 0) {
+                Swal.fire('Aviso', 'Por favor, selecione pelo menos um lançamento para salvar.', 'warning');
+                return;
+            }
 
             const btn = document.getElementById('btn-save-all');
             const originalHtml = btn.innerHTML;
@@ -356,4 +507,5 @@
     .table input, .table select { border: 1px solid #ced4da; }
     .table input:focus, .table select:focus { border: 1px solid #86b7fe; box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25); }
     .sticky-top { background-color: #fff; z-index: 1020; }
+    .table-warning-bg { background-color: rgba(255, 193, 7, 0.07) !important; }
 </style>
