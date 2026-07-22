@@ -225,47 +225,77 @@
         }
 
         function parseOfx(text) {
-            processingStatus.classList.remove('d-none');
-            resultsContainer.classList.add('d-none');
-            importTbody.innerHTML = '';
+            try {
+                processingStatus.classList.remove('d-none');
+                resultsContainer.classList.add('d-none');
+                importTbody.innerHTML = '';
 
-            const blocks = text.split(/<STMTTRN>/i);
-            const lancamentos = [];
+                // Split by STMTTRN allowing optional spaces
+                const blocks = text.split(/<STMTTRN\s*>/i);
+                const lancamentos = [];
 
-            for (let i = 1; i < blocks.length; i++) {
-                const block = blocks[i].split(/<\/STMTTRN>/i)[0];
-                
-                const trntype = getTagValue(block, 'TRNTYPE');
-                const dtposted = getTagValue(block, 'DTPOSTED');
-                const trnamt = getTagValue(block, 'TRNAMT');
-                const memo = getTagValue(block, 'MEMO') || getTagValue(block, 'NAME') || 'Sem descrição';
+                console.log("OFX parser found blocks:", blocks.length - 1);
 
-                if (!dtposted || !trnamt) continue;
+                for (let i = 1; i < blocks.length; i++) {
+                    // Split by closing tag or next tag to isolate this transaction block
+                    const block = blocks[i].split(/<\/?STMTTRN\s*>/i)[0];
+                    
+                    const trntype = getTagValue(block, 'TRNTYPE');
+                    const dtposted = getTagValue(block, 'DTPOSTED');
+                    const trnamt = getTagValue(block, 'TRNAMT');
+                    const memo = getTagValue(block, 'MEMO') || getTagValue(block, 'NAME') || 'Sem descrição';
 
-                const year = dtposted.substring(0, 4);
-                const month = dtposted.substring(4, 6);
-                const day = dtposted.substring(6, 8);
-                const dataIso = `${year}-${month}-${day}`;
+                    if (!dtposted || !trnamt) {
+                        console.warn(`Block ${i} missing DTPOSTED or TRNAMT:`, { dtposted, trnamt, memo });
+                        continue;
+                    }
 
-                const valor = parseFloat(trnamt);
-                if (isNaN(valor)) continue;
+                    // Extract date parts
+                    if (dtposted.length < 8) {
+                        console.warn(`Block ${i} DTPOSTED is too short:`, dtposted);
+                        continue;
+                    }
+                    const year = dtposted.substring(0, 4);
+                    const month = dtposted.substring(4, 6);
+                    const day = dtposted.substring(6, 8);
+                    const dataIso = `${year}-${month}-${day}`;
 
-                const tipo = (valor < 0 || trntype.toUpperCase() === 'DEBIT') ? 2 : 1;
+                    // Parse amount: clean up comma decimal separators if any
+                    const valorLimpo = trnamt.replace(/\s/g, '').replace(',', '.');
+                    const valor = parseFloat(valorLimpo);
+                    if (isNaN(valor)) {
+                        console.warn(`Block ${i} TRNAMT is not a number:`, trnamt);
+                        continue;
+                    }
 
-                lancamentos.push({
-                    data: dataIso,
-                    descricao: memo,
-                    valor: Math.abs(valor),
-                    tipo: tipo
-                });
+                    const tipo = (valor < 0 || (trntype && trntype.toUpperCase() === 'DEBIT')) ? 2 : 1;
+
+                    lancamentos.push({
+                        data: dataIso,
+                        descricao: memo,
+                        valor: Math.abs(valor),
+                        tipo: tipo
+                    });
+                }
+
+                console.log("OFX parser extracted lancamentos:", lancamentos);
+
+                if (lancamentos.length === 0) {
+                    Swal.fire('Aviso', 'Nenhum lançamento válido foi encontrado no arquivo OFX.', 'warning');
+                }
+
+                parsedLancamentos = lancamentos;
+                verificarDuplicadosEDisplay();
+            } catch (err) {
+                console.error("Erro no processamento do OFX:", err);
+                Swal.fire('Erro', 'Erro ao processar o arquivo OFX: ' + err.message, 'error');
+                processingStatus.classList.add('d-none');
             }
-
-            parsedLancamentos = lancamentos;
-            verificarDuplicadosEDisplay();
         }
 
         function getTagValue(block, tag) {
-            const regex = new RegExp('<' + tag + '>([^<\\r\\n]+)', 'i');
+            // Match tag with optional spaces inside tag brackets
+            const regex = new RegExp('<' + tag + '\\s*>([^<\\r\\n]*)', 'i');
             const match = block.match(regex);
             return match ? match[1].trim() : '';
         }
@@ -273,12 +303,16 @@
         async function verificarDuplicadosEDisplay() {
             if (parsedLancamentos.length === 0) {
                 displayResults([]);
+                processingStatus.classList.add('d-none');
+                resultsContainer.classList.remove('d-none');
                 return;
             }
 
             const contaId = parseInt(globalConta.value);
             if (isNaN(contaId)) {
                 displayResults(parsedLancamentos.map(l => ({ ...l, status: 'novo' })));
+                processingStatus.classList.add('d-none');
+                resultsContainer.classList.remove('d-none');
                 return;
             }
 
