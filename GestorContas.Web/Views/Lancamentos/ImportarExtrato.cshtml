@@ -271,17 +271,37 @@
 
                 const dataStr = columns[0].trim();
                 const historico = columns[descIndex].trim();
-                const valorStr = columns[valIndex].trim();
 
                 if (historico.toUpperCase().includes('SALDO ANTERIOR')) continue;
                 if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) continue;
 
+                let valorStr = '';
+                let isDebit = false;
+
+                if (isComma) {
+                    const val4 = columns[4] ? columns[4].trim().replace(/["']/g, '') : '';
+                    const val5 = columns[5] ? columns[5].trim().replace(/["']/g, '') : '';
+                    
+                    const p4 = parseFloat(val4);
+                    const p5 = parseFloat(val5);
+                    
+                    // Se a coluna 4 tiver valor válido diferente de 0 e a coluna 5 estiver vazia ou com 0, 
+                    // significa que é um crédito (Entrada)
+                    if (!isNaN(p4) && p4 !== 0 && (isNaN(p5) || p5 === 0)) {
+                        valorStr = val4;
+                        isDebit = false;
+                    } else {
+                        valorStr = val5;
+                        isDebit = true;
+                    }
+                } else {
+                    valorStr = columns[valIndex].trim();
+                }
+
                 let valorLimpo = valorStr.replace(/\s/g, '');
                 if (isComma) {
-                    // Se o separador for vírgula, o decimal já é ponto (ex: -30.00). Apenas removemos possíveis aspas.
                     valorLimpo = valorLimpo.replace(/["']/g, '');
                 } else {
-                    // Se o separador for ponto-e-vírgula, o decimal é vírgula e milhar é ponto.
                     valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.');
                 }
                 const valor = parseFloat(valorLimpo);
@@ -291,11 +311,13 @@
                 const partesData = dataStr.split('/');
                 const dataIso = `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
 
+                const tipo = isComma ? (isDebit ? 2 : 1) : (valor < 0 ? 2 : 1);
+
                 lancamentos.push({
                     data: dataIso,
                     descricao: historico,
                     valor: Math.abs(valor),
-                    tipo: valor < 0 ? 2 : 1
+                    tipo: tipo
                 });
             }
 
