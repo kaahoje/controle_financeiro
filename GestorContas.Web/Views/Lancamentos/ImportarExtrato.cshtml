@@ -32,6 +32,23 @@
                         </div>
                     </div>
 
+                    <div class="row mb-4 justify-content-center">
+                        <div class="col-md-6">
+                            <div class="card bg-light border-0 shadow-sm">
+                                <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+                                    <span class="small text-secondary fw-bold"><i class="bi bi-gear-fill me-1"></i> Separador CSV:</span>
+                                    <div class="btn-group btn-group-sm" role="group" id="csv-separator-group">
+                                        <input type="radio" class="btn-check" name="csvSeparator" id="sep-semicolon" value=";" checked>
+                                        <label class="btn btn-outline-primary px-3" for="sep-semicolon">Ponto e vírgula ( ; )</label>
+
+                                        <input type="radio" class="btn-check" name="csvSeparator" id="sep-comma" value=",">
+                                        <label class="btn btn-outline-primary px-3" for="sep-comma">Vírgula ( , )</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div id="processing-status" class="d-none mb-4">
                         <div class="d-flex align-items-center mb-2">
                             <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
@@ -161,6 +178,9 @@
             if (file) handleFile(file);
         });
 
+        let rawFileText = '';
+        let currentFileName = '';
+
         function handleFile(file) {
             const fileName = file.name.toLowerCase();
             if (!fileName.endsWith('.csv') && !fileName.endsWith('.ofx')) {
@@ -168,16 +188,35 @@
                 return;
             }
 
+            currentFileName = fileName;
+
             const reader = new FileReader();
             reader.onload = (e) => {
                 const text = e.target.result;
-                if (fileName.endsWith('.ofx')) {
-                    parseOfx(text);
+                
+                // Se o texto conter bytes nulos, provavelmente é UTF-16 lido como ISO-8859-1
+                if (text.includes('\0')) {
+                    console.log("Detectado bytes nulos no arquivo. Lendo novamente como UTF-16...");
+                    const utf16Reader = new FileReader();
+                    utf16Reader.onload = (e2) => {
+                        rawFileText = e2.target.result;
+                        processText(rawFileText, fileName);
+                    };
+                    utf16Reader.readAsText(file, 'UTF-16');
                 } else {
-                    parseCsv(text);
+                    rawFileText = text;
+                    processText(rawFileText, fileName);
                 }
             };
             reader.readAsText(file, 'ISO-8859-1');
+        }
+
+        function processText(text, fileName) {
+            if (fileName.endsWith('.ofx')) {
+                parseOfx(text);
+            } else {
+                parseCsv(text);
+            }
         }
 
         let parsedLancamentos = [];
@@ -190,11 +229,39 @@
             const lines = text.split(/\r?\n/);
             const lancamentos = [];
 
+            // Auto-detectar separador (, ou ;) escaneando as primeiras 10 linhas
+            let separator = ';';
+            let totalSemicolons = 0;
+            let totalCommas = 0;
+            const linesToScan = lines.slice(0, 10);
+            for (const line of linesToScan) {
+                totalSemicolons += (line.match(/;/g) || []).length;
+                totalCommas += (line.match(/,/g) || []).length;
+            }
+
+            if (totalCommas > 0 || totalSemicolons > 0) {
+                if (totalCommas > totalSemicolons) {
+                    separator = ',';
+                    const radioComma = document.getElementById('sep-comma');
+                    if (radioComma) radioComma.checked = true;
+                } else {
+                    separator = ';';
+                    const radioSemicolon = document.getElementById('sep-semicolon');
+                    if (radioSemicolon) radioSemicolon.checked = true;
+                }
+            }
+
+            // Usar o separador atualmente selecionado pelo usuário (que pode ter sido alterado manualmente antes)
+            const activeSeparatorRadio = document.querySelector('input[name="csvSeparator"]:checked');
+            if (activeSeparatorRadio) {
+                separator = activeSeparatorRadio.value;
+            }
+
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const columns = line.split(';');
+                const columns = line.split(separator);
                 if (columns.length < 5) continue;
 
                 const dataStr = columns[0].trim();
@@ -230,6 +297,9 @@
                 resultsContainer.classList.add('d-none');
                 importTbody.innerHTML = '';
 
+                console.log("OFX RAW LENGTH:", text.length);
+                console.log("OFX PREVIEW:\n", text.substring(0, 1000));
+
                 // Split by STMTTRN allowing optional spaces
                 const blocks = text.split(/<STMTTRN\s*>/i);
                 const lancamentos = [];
@@ -237,8 +307,7 @@
                 console.log("OFX parser found blocks:", blocks.length - 1);
 
                 for (let i = 1; i < blocks.length; i++) {
-                    // Split by closing tag or next tag to isolate this transaction block
-                    const block = blocks[i].split(/<\/?STMTTRN\s*>/i)[0];
+                    const block = blocks[i].split(/<\/STMTTRN\s*>/i)[0];
                     
                     const trntype = getTagValue(block, 'TRNTYPE');
                     const dtposted = getTagValue(block, 'DTPOSTED');
@@ -250,17 +319,17 @@
                         continue;
                     }
 
-                    // Extract date parts
-                    if (dtposted.length < 8) {
-                        console.warn(`Block ${i} DTPOSTED is too short:`, dtposted);
+                    // Extract date parts (ignoring space, time, or timezone)
+                    const cleanDt = dtposted.replace(/\s/g, '');
+                    if (cleanDt.length < 8) {
+                        console.warn(`Block ${i} DTPOSTED is too short:`, cleanDt);
                         continue;
                     }
-                    const year = dtposted.substring(0, 4);
-                    const month = dtposted.substring(4, 6);
-                    const day = dtposted.substring(6, 8);
+                    const year = cleanDt.substring(0, 4);
+                    const month = cleanDt.substring(4, 6);
+                    const day = cleanDt.substring(6, 8);
                     const dataIso = `${year}-${month}-${day}`;
 
-                    // Parse amount: clean up comma decimal separators if any
                     const valorLimpo = trnamt.replace(/\s/g, '').replace(',', '.');
                     const valor = parseFloat(valorLimpo);
                     if (isNaN(valor)) {
@@ -294,8 +363,8 @@
         }
 
         function getTagValue(block, tag) {
-            // Match tag with optional spaces inside tag brackets
-            const regex = new RegExp('<' + tag + '\\s*>([^<\\r\\n]*)', 'i');
+            // Match tag with optional spaces inside tag brackets, matching up to next opening bracket
+            const regex = new RegExp('<' + tag + '\\s*>([^<]*)', 'i');
             const match = block.match(regex);
             return match ? match[1].trim() : '';
         }
@@ -445,6 +514,14 @@
             if (parsedLancamentos.length > 0) {
                 verificarDuplicadosEDisplay();
             }
+        });
+
+        document.querySelectorAll('input[name="csvSeparator"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (rawFileText && currentFileName.endsWith('.csv')) {
+                    parseCsv(rawFileText);
+                }
+            });
         });
 
         document.getElementById('btn-clear-all').addEventListener('click', () => {
