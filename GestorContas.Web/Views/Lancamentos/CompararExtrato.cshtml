@@ -1,0 +1,731 @@
+@using GestorContas.Web.Models.Enums
+@{
+    var isAjax = Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+    if (isAjax) {
+        Layout = null;
+    }
+    ViewData["Title"] = "Comparar Extrato Bancário";
+}
+
+<div class="@(isAjax ? "" : "container mt-4")">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="@(isAjax ? "" : "card shadow-sm border-0 rounded-3")">
+                @if (!isAjax)
+                {
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center p-3">
+                        <h4 class="mb-0"><i class="bi bi-layout-split me-2"></i>Comparar Extrato Bancário</h4>
+                        <a asp-action="Index" class="btn btn-light btn-sm"><i class="bi bi-arrow-left me-1"></i>Voltar</a>
+                    </div>
+                }
+                <div class="@(isAjax ? "" : "card-body p-4")">
+                    <!-- Configuração e Carregamento -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div id="comp-drop-zone" class="border border-2 border-dashed rounded-3 p-4 text-center bg-light cursor-pointer" style="transition: all 0.3s ease;">
+                                <i class="bi bi-file-earmark-diff display-3 text-primary mb-2"></i>
+                                <h5>Arraste o arquivo do Extrato (CSV ou OFX) para Comparação</h5>
+                                <p class="text-muted mb-2">O sistema irá comparar os lançamentos por <strong>Data</strong> e <strong>Valor</strong> com a base cadastrada</p>
+                                <input type="file" id="compFileInput" accept=".csv,.ofx" class="d-none" />
+                                <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('compFileInput').click()">
+                                    <i class="bi bi-folder2-open me-1"></i>Selecionar Arquivo (CSV / OFX)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4 align-items-center justify-content-between">
+                        <div class="col-md-5">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold"><i class="bi bi-wallet2 me-1 text-primary"></i> Conta Bancária:</span>
+                                <select id="comp-conta" class="form-select border-primary shadow-none">
+                                    <!-- Populado via tpl-conta -->
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mt-2 mt-md-0">
+                            <div class="card bg-light border-0 shadow-sm">
+                                <div class="card-body py-2 px-3 d-flex align-items-center justify-content-between">
+                                    <span class="small text-secondary fw-bold"><i class="bi bi-gear-fill me-1"></i> Separador CSV:</span>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <input type="radio" class="btn-check" name="compCsvSeparator" id="comp-sep-semicolon" value=";" checked>
+                                        <label class="btn btn-outline-primary px-3" for="comp-sep-semicolon">Ponto e vírgula ( ; )</label>
+
+                                        <input type="radio" class="btn-check" name="compCsvSeparator" id="comp-sep-comma" value=",">
+                                        <label class="btn btn-outline-primary px-3" for="comp-sep-comma">Vírgula ( , )</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="comp-processing-status" class="d-none mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                            <span id="comp-status-text">Processando e comparando dados...</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div id="comp-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Resultados da Comparação -->
+                    <div id="comp-results-container" class="d-none">
+                        <hr />
+
+                        <!-- Summary Cards -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3">
+                                <div class="card shadow-sm border-start border-4 border-info h-100">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 bg-info-subtle text-info p-3 rounded-3 me-3">
+                                                <i class="bi bi-file-earmark-text fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small fw-bold text-uppercase">No Extrato</div>
+                                                <div class="h4 mb-0 fw-bold" id="card-total-extrato">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="card shadow-sm border-start border-4 border-success h-100">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 bg-success-subtle text-success p-3 rounded-3 me-3">
+                                                <i class="bi bi-check-circle-fill fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small fw-bold text-uppercase">Conciliados</div>
+                                                <div class="h4 mb-0 fw-bold text-success" id="card-conciliados">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="card shadow-sm border-start border-4 border-warning h-100">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 bg-warning-subtle text-warning p-3 rounded-3 me-3">
+                                                <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small fw-bold text-uppercase">Apenas no Extrato</div>
+                                                <div class="h4 mb-0 fw-bold text-warning" id="card-apenas-extrato">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="card shadow-sm border-start border-4 border-secondary h-100">
+                                    <div class="card-body py-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 bg-secondary-subtle text-secondary p-3 rounded-3 me-3">
+                                                <i class="bi bi-question-circle-fill fs-4"></i>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small fw-bold text-uppercase">Apenas no Sistema</div>
+                                                <div class="h4 mb-0 fw-bold text-secondary" id="card-apenas-sistema">0</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Abas de Visualização -->
+                        <ul class="nav nav-tabs nav-fill mb-3" id="compTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active fw-bold" id="tab-apenas-extrato-btn" data-bs-toggle="tab" data-bs-target="#pane-apenas-extrato" type="button" role="tab">
+                                    <i class="bi bi-plus-circle me-1 text-warning"></i>Apenas no Extrato (Faltantes) <span class="badge bg-warning text-dark ms-1" id="badge-tab-apenas-extrato">0</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold" id="tab-conciliados-btn" data-bs-toggle="tab" data-bs-target="#pane-conciliados" type="button" role="tab">
+                                    <i class="bi bi-check-all me-1 text-success"></i>Conciliados <span class="badge bg-success ms-1" id="badge-tab-conciliados">0</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold" id="tab-apenas-sistema-btn" data-bs-toggle="tab" data-bs-target="#pane-apenas-sistema" type="button" role="tab">
+                                    <i class="bi bi-server me-1 text-secondary"></i>Apenas no Sistema <span class="badge bg-secondary ms-1" id="badge-tab-apenas-sistema">0</span>
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="compTabContent">
+                            <!-- Aba 1: Apenas no Extrato (Possibilidade de Inclusão) -->
+                            <div class="tab-pane fade show active" id="pane-apenas-extrato" role="tabpanel">
+                                <div class="alert alert-warning d-flex align-items-center py-2 px-3 mb-3">
+                                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                                    <span>Estes lançamentos estão no arquivo do banco, mas <strong>não foram localizados no sistema</strong> pela combinação de Data e Valor. Você pode selecionar e salvá-los na base.</span>
+                                </div>
+
+                                <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle border">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th style="width: 45px;" class="text-center"><input type="checkbox" id="chk-comp-select-all" class="form-check-input" checked></th>
+                                                <th style="width: 120px;">Data</th>
+                                                <th>Descrição (Extrato)</th>
+                                                <th style="width: 140px;">Valor</th>
+                                                <th style="width: 110px;">Tipo</th>
+                                                <th style="width: 220px;">Categoria para Salvar</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-apenas-extrato">
+                                            <!-- Populado dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div class="d-flex justify-content-end mt-3">
+                                    <button type="button" class="btn btn-success shadow-sm px-4" id="btn-save-comp-faltantes">
+                                        <i class="bi bi-check-circle-fill me-2"></i>Salvar Selecionados no Sistema
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Aba 2: Conciliados -->
+                            <div class="tab-pane fade" id="pane-conciliados" role="tabpanel">
+                                <div class="alert alert-success d-flex align-items-center py-2 px-3 mb-3">
+                                    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                                    <span>Estes lançamentos foram <strong>confirmados e conciliados</strong> (existem tanto no extrato bancário quanto no sistema com mesma data e valor).</span>
+                                </div>
+
+                                <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle border">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th style="width: 110px;">Data</th>
+                                                <th>Descrição no Extrato</th>
+                                                <th>Descrição no Sistema</th>
+                                                <th style="width: 130px;">Valor</th>
+                                                <th style="width: 110px;">Tipo</th>
+                                                <th style="width: 150px;">Categoria</th>
+                                                <th style="width: 110px;" class="text-center">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-conciliados">
+                                            <!-- Populado dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Aba 3: Apenas no Sistema -->
+                            <div class="tab-pane fade" id="pane-apenas-sistema" role="tabpanel">
+                                <div class="alert alert-secondary d-flex align-items-center py-2 px-3 mb-3">
+                                    <i class="bi bi-question-circle-fill me-2 fs-5"></i>
+                                    <span>Estes lançamentos constam cadastrados no sistema dentro do período do extrato, porém <strong>não possuem correspondente no extrato importado</strong>.</span>
+                                </div>
+
+                                <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle border">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th style="width: 80px;">ID</th>
+                                                <th style="width: 110px;">Data</th>
+                                                <th>Descrição no Sistema</th>
+                                                <th style="width: 130px;">Valor</th>
+                                                <th style="width: 110px;">Tipo</th>
+                                                <th style="width: 160px;">Categoria</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-apenas-sistema">
+                                            <!-- Populado dinamicamente -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Templates Auxiliares -->
+<div class="d-none">
+    <select id="comp-tpl-categoria">
+        @foreach (var item in (SelectList)ViewBag.Categorias)
+        {
+            <option value="@item.Value">@item.Text</option>
+        }
+    </select>
+    <select id="comp-tpl-conta">
+        @foreach (var item in (SelectList)ViewBag.Contas)
+        {
+            <option value="@item.Value">@item.Text</option>
+        }
+    </select>
+</div>
+
+@Html.AntiForgeryToken()
+
+<script>
+    (function() {
+        const dropZone = document.getElementById('comp-drop-zone');
+        const fileInput = document.getElementById('compFileInput');
+        const processingStatus = document.getElementById('comp-processing-status');
+        const resultsContainer = document.getElementById('comp-results-container');
+        const compConta = document.getElementById('comp-conta');
+        const compTplConta = document.getElementById('comp-tpl-conta');
+        const compTplCategoria = document.getElementById('comp-tpl-categoria');
+
+        // Populando select de contas
+        compConta.innerHTML = compTplConta.innerHTML;
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('bg-primary', 'bg-opacity-10', 'border-primary');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('bg-primary', 'bg-opacity-10', 'border-primary');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('bg-primary', 'bg-opacity-10', 'border-primary');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        let rawFileText = '';
+        let currentFileName = '';
+        let parsedLancamentos = [];
+
+        function handleFile(file) {
+            const fileName = file.name.toLowerCase();
+            if (!fileName.endsWith('.csv') && !fileName.endsWith('.ofx')) {
+                Swal.fire('Erro', 'Por favor, selecione um arquivo CSV ou OFX válido.', 'error');
+                return;
+            }
+
+            currentFileName = fileName;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const text = e.target.result;
+                if (text.includes('\0')) {
+                    const utf16Reader = new FileReader();
+                    utf16Reader.onload = (e2) => {
+                        rawFileText = e2.target.result;
+                        processText(rawFileText, fileName);
+                    };
+                    utf16Reader.readAsText(file, 'UTF-16');
+                } else {
+                    rawFileText = text;
+                    processText(rawFileText, fileName);
+                }
+            };
+            reader.readAsText(file, 'ISO-8859-1');
+        }
+
+        function processText(text, fileName) {
+            if (fileName.endsWith('.ofx')) {
+                parseOfx(text);
+            } else {
+                parseCsv(text);
+            }
+        }
+
+        function parseCsv(text) {
+            const lines = text.split(/\r?\n/);
+            const lancamentos = [];
+
+            let separator = ';';
+            let totalSemicolons = 0;
+            let totalCommas = 0;
+            const linesToScan = lines.slice(0, 10);
+            for (const line of linesToScan) {
+                totalSemicolons += (line.match(/;/g) || []).length;
+                totalCommas += (line.match(/,/g) || []).length;
+            }
+
+            if (totalCommas > 0 || totalSemicolons > 0) {
+                if (totalCommas > totalSemicolons) {
+                    separator = ',';
+                    const radioComma = document.getElementById('comp-sep-comma');
+                    if (radioComma) radioComma.checked = true;
+                } else {
+                    separator = ';';
+                    const radioSemicolon = document.getElementById('comp-sep-semicolon');
+                    if (radioSemicolon) radioSemicolon.checked = true;
+                }
+            }
+
+            const activeSeparatorRadio = document.querySelector('input[name="compCsvSeparator"]:checked');
+            if (activeSeparatorRadio) {
+                separator = activeSeparatorRadio.value;
+            }
+
+            const isComma = separator === ',';
+            const minCols = isComma ? 6 : 5;
+            const descIndex = isComma ? 2 : 3;
+            const valIndex = isComma ? 4 : 4;
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const columns = line.split(separator);
+                if (columns.length < minCols) continue;
+
+                const dataStr = columns[0].trim();
+                const historico = columns[descIndex].trim();
+
+                if (historico.toUpperCase().includes('SALDO ANTERIOR')) continue;
+                if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dataStr)) continue;
+
+                let valorStr = '';
+                let isDebit = false;
+
+                if (isComma) {
+                    const val4 = columns[4] ? columns[4].trim().replace(/["']/g, '') : '';
+                    const val5 = columns[5] ? columns[5].trim().replace(/["']/g, '') : '';
+                    const p4 = parseFloat(val4);
+                    const p5 = parseFloat(val5);
+                    
+                    if (!isNaN(p4) && p4 !== 0 && (isNaN(p5) || p5 === 0)) {
+                        valorStr = val4;
+                        isDebit = false;
+                    } else {
+                        valorStr = val5;
+                        isDebit = true;
+                    }
+                } else {
+                    valorStr = columns[valIndex].trim();
+                }
+
+                let valorLimpo = valorStr.replace(/\s/g, '');
+                if (isComma) {
+                    valorLimpo = valorLimpo.replace(/["']/g, '');
+                } else {
+                    valorLimpo = valorLimpo.replace(/\./g, '').replace(',', '.');
+                }
+                const valor = parseFloat(valorLimpo);
+
+                if (isNaN(valor)) continue;
+
+                const partesData = dataStr.split('/');
+                const dataIso = `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
+
+                const tipo = isComma ? (isDebit ? 2 : 1) : (valor < 0 ? 2 : 1);
+
+                lancamentos.push({
+                    data: dataIso,
+                    descricao: historico,
+                    valor: Math.abs(valor),
+                    tipo: tipo
+                });
+            }
+
+            parsedLancamentos = lancamentos;
+            executarComparacao();
+        }
+
+        function parseOfx(text) {
+            try {
+                const blocks = text.split(/<STMTTRN\s*>/i);
+                const lancamentos = [];
+
+                for (let i = 1; i < blocks.length; i++) {
+                    const block = blocks[i].split(/<\/STMTTRN\s*>/i)[0];
+                    const trntype = getTagValue(block, 'TRNTYPE');
+                    const dtposted = getTagValue(block, 'DTPOSTED');
+                    const trnamt = getTagValue(block, 'TRNAMT');
+                    const memo = getTagValue(block, 'MEMO') || getTagValue(block, 'NAME') || 'Sem descrição';
+
+                    if (!dtposted || !trnamt) continue;
+
+                    const cleanDt = dtposted.replace(/\s/g, '');
+                    if (cleanDt.length < 8) continue;
+
+                    const year = cleanDt.substring(0, 4);
+                    const month = cleanDt.substring(4, 6);
+                    const day = cleanDt.substring(6, 8);
+                    const dataIso = `${year}-${month}-${day}`;
+
+                    const valorLimpo = trnamt.replace(/\s/g, '').replace(',', '.');
+                    const valor = parseFloat(valorLimpo);
+                    if (isNaN(valor)) continue;
+
+                    const tipo = (valor < 0 || (trntype && trntype.toUpperCase() === 'DEBIT')) ? 2 : 1;
+
+                    lancamentos.push({
+                        data: dataIso,
+                        descricao: memo,
+                        valor: Math.abs(valor),
+                        tipo: tipo
+                    });
+                }
+
+                parsedLancamentos = lancamentos;
+                executarComparacao();
+            } catch (err) {
+                console.error("Erro OFX:", err);
+                Swal.fire('Erro', 'Erro ao processar OFX: ' + err.message, 'error');
+            }
+        }
+
+        function getTagValue(block, tag) {
+            const regex = new RegExp('<' + tag + '\\s*>([^<]*)', 'i');
+            const match = block.match(regex);
+            return match ? match[1].trim() : '';
+        }
+
+        async function executarComparacao() {
+            if (parsedLancamentos.length === 0) {
+                Swal.fire('Aviso', 'Nenhum lançamento válido foi encontrado no arquivo.', 'warning');
+                return;
+            }
+
+            const contaId = parseInt(compConta.value);
+            if (isNaN(contaId)) {
+                Swal.fire('Aviso', 'Por favor, selecione a Conta Bancária para comparar.', 'warning');
+                return;
+            }
+
+            processingStatus.classList.remove('d-none');
+            resultsContainer.classList.add('d-none');
+
+            try {
+                const dtos = parsedLancamentos.map(l => ({
+                    Data: l.data,
+                    Valor: l.valor,
+                    Tipo: l.tipo,
+                    Descricao: l.descricao
+                }));
+
+                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                const response = await fetch('@Url.Action("ProcessarComparacaoExtrato", "Lancamentos")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': tokenInput ? tokenInput.value : ''
+                    },
+                    body: JSON.stringify({
+                        ContaId: contaId,
+                        Lancamentos: dtos
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    renderizarResultados(result);
+                } else {
+                    Swal.fire('Erro', 'Falha ao processar comparação.', 'error');
+                }
+            } catch (error) {
+                console.error("Erro na comparação:", error);
+                Swal.fire('Erro', 'Erro de comunicação ao comparar extrato.', 'error');
+            } finally {
+                processingStatus.classList.add('d-none');
+                resultsContainer.classList.remove('d-none');
+            }
+        }
+
+        function renderizarResultados(data) {
+            // Update Summary Cards
+            document.getElementById('card-total-extrato').innerText = data.totalExtrato;
+            document.getElementById('card-conciliados').innerText = data.conciliados.length;
+            document.getElementById('card-apenas-extrato').innerText = data.apenasExtrato.length;
+            document.getElementById('card-apenas-sistema').innerText = data.apenasSistema.length;
+
+            // Update Tab Badges
+            document.getElementById('badge-tab-apenas-extrato').innerText = data.apenasExtrato.length;
+            document.getElementById('badge-tab-conciliados').innerText = data.conciliados.length;
+            document.getElementById('badge-tab-apenas-sistema').innerText = data.apenasSistema.length;
+
+            // Render Table 1: Apenas no Extrato
+            const tbodyExtrato = document.getElementById('tbody-apenas-extrato');
+            tbodyExtrato.innerHTML = '';
+            if (data.apenasExtrato.length === 0) {
+                tbodyExtrato.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4"><i class="bi bi-check-circle text-success me-1"></i> Todos os lançamentos do extrato estão cadastrados no sistema!</td></tr>';
+            } else {
+                data.apenasExtrato.forEach(item => {
+                    const dateVal = item.data ? String(item.data).split('T')[0] : '';
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="text-center"><input type="checkbox" class="form-check-input chk-comp-item" checked></td>
+                        <td><input type="date" class="form-control form-control-sm item-data bg-light" value="${dateVal}" readonly></td>
+                        <td><input type="text" class="form-control form-control-sm item-descricao" value="${item.descricao}"></td>
+                        <td>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-light">R$</span>
+                                <input type="number" step="0.01" class="form-control item-valor bg-light" value="${item.valor.toFixed(2)}" readonly>
+                            </div>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm item-tipo bg-light" disabled>
+                                <option value="1" ${item.tipo === 1 ? 'selected' : ''}>Entrada</option>
+                                <option value="2" ${item.tipo === 2 ? 'selected' : ''}>Saída</option>
+                            </select>
+                        </td>
+                        <td>
+                            <select class="form-select form-select-sm item-categoria">
+                                ${compTplCategoria.innerHTML}
+                            </select>
+                        </td>
+                    `;
+                    tbodyExtrato.appendChild(row);
+                });
+            }
+
+            // Render Table 2: Conciliados
+            const tbodyConciliados = document.getElementById('tbody-conciliados');
+            tbodyConciliados.innerHTML = '';
+            if (data.conciliados.length === 0) {
+                tbodyConciliados.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">Nenhum lançamento correspondente foi encontrado neste período.</td></tr>';
+            } else {
+                data.conciliados.forEach(c => {
+                    const partsData = c.extrato.data.split('-');
+                    const formatData = `${partsData[2]}/${partsData[1]}/${partsData[0]}`;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><span class="badge bg-light text-dark border">${formatData}</span></td>
+                        <td><span class="fw-semibold">${c.extrato.descricao}</span></td>
+                        <td><span class="text-secondary">${c.sistema.descricao}</span></td>
+                        <td class="fw-bold ${c.extrato.tipo === 1 ? 'text-success' : 'text-danger'}">R$ ${c.extrato.valor.toFixed(2)}</td>
+                        <td>${c.extrato.tipo === 1 ? '<span class="badge bg-success">Entrada</span>' : '<span class="badge bg-danger">Saída</span>'}</td>
+                        <td><span class="badge bg-info">${c.sistema.categoriaNome}</span></td>
+                        <td class="text-center"><span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>OK</span></td>
+                    `;
+                    tbodyConciliados.appendChild(row);
+                });
+            }
+
+            // Render Table 3: Apenas no Sistema
+            const tbodySistema = document.getElementById('tbody-apenas-sistema');
+            tbodySistema.innerHTML = '';
+            if (data.apenasSistema.length === 0) {
+                tbodySistema.innerHTML = '<tr><td colspan="6" class="text-center text-muted p-4"><i class="bi bi-check-circle text-success me-1"></i> Não há lançamentos avulsos no sistema para este período!</td></tr>';
+            } else {
+                data.apenasSistema.forEach(s => {
+                    const partsData = s.data.split('-');
+                    const formatData = `${partsData[2]}/${partsData[1]}/${partsData[0]}`;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><span class="text-muted small">#${s.id}</span></td>
+                        <td><span class="badge bg-light text-dark border">${formatData}</span></td>
+                        <td class="fw-semibold">${s.descricao}</td>
+                        <td class="fw-bold ${s.tipo === 1 ? 'text-success' : 'text-danger'}">R$ ${s.valor.toFixed(2)}</td>
+                        <td>${s.tipo === 1 ? '<span class="badge bg-success">Entrada</span>' : '<span class="badge bg-danger">Saída</span>'}</td>
+                        <td><span class="badge bg-info">${s.categoriaNome}</span></td>
+                    `;
+                    tbodySistema.appendChild(row);
+                });
+            }
+        }
+
+        // Event listeners para troca de conta ou separador CSV
+        compConta.addEventListener('change', () => {
+            if (parsedLancamentos.length > 0) {
+                executarComparacao();
+            }
+        });
+
+        document.querySelectorAll('input[name="compCsvSeparator"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (rawFileText && currentFileName.endsWith('.csv')) {
+                    parseCsv(rawFileText);
+                }
+            });
+        });
+
+        // Check All na aba Apenas no Extrato
+        const chkCompSelectAll = document.getElementById('chk-comp-select-all');
+        if (chkCompSelectAll) {
+            chkCompSelectAll.addEventListener('change', (e) => {
+                const checked = e.target.checked;
+                document.querySelectorAll('#tbody-apenas-extrato .chk-comp-item').forEach(cb => {
+                    cb.checked = checked;
+                });
+            });
+        }
+
+        // Salvar Lançamentos Faltantes
+        document.getElementById('btn-save-comp-faltantes').addEventListener('click', async () => {
+            const rows = document.querySelectorAll('#tbody-apenas-extrato tr');
+            if (rows.length === 0) return;
+
+            const contaId = parseInt(compConta.value);
+            if (isNaN(contaId)) {
+                Swal.fire('Aviso', 'Por favor, selecione a conta de destino.', 'warning');
+                return;
+            }
+
+            const lancamentos = [];
+            rows.forEach(row => {
+                const chk = row.querySelector('.chk-comp-item');
+                if (chk && chk.checked) {
+                    lancamentos.push({
+                        Data: row.querySelector('.item-data').value,
+                        Descricao: row.querySelector('.item-descricao').value,
+                        Valor: parseFloat(row.querySelector('.item-valor').value),
+                        Tipo: parseInt(row.querySelector('.item-tipo').value),
+                        CategoriaId: parseInt(row.querySelector('.item-categoria').value),
+                        ContaId: contaId
+                    });
+                }
+            });
+
+            if (lancamentos.length === 0) {
+                Swal.fire('Aviso', 'Por favor, selecione pelo menos um lançamento para salvar.', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-comp-faltantes');
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Salvando...';
+
+            try {
+                const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+                const response = await fetch('@Url.Action("SalvarLancamentosImportados", "Lancamentos")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': tokenInput ? tokenInput.value : ''
+                    },
+                    body: JSON.stringify(lancamentos)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    Swal.fire('Sucesso!', result.message, 'success').then(() => {
+                        executarComparacao();
+                    });
+                } else {
+                    Swal.fire('Erro', result.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Erro', 'Erro ao salvar lançamentos: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        });
+    })();
+</script>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+    #comp-drop-zone:hover { border-color: #0d6efd !important; background-color: rgba(13, 110, 253, 0.05) !important; }
+    .border-dashed { border-style: dashed !important; }
+    .sticky-top { background-color: #fff; z-index: 1020; }
+</style>

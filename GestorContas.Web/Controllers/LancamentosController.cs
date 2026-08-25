@@ -504,6 +504,107 @@ namespace GestorContas.Web.Controllers
 
             return Json(new { success = true, resultados });
         }
+
+        public async Task<IActionResult> CompararExtrato()
+        {
+            ViewBag.Categorias = new SelectList(await _context.Categorias.OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            ViewBag.Contas = new SelectList(await _context.Contas.Where(c => c.Ativa).OrderBy(c => c.Nome).ToListAsync(), "Id", "Nome");
+            
+            if (IsAjaxRequest)
+                return PartialView();
+                
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ProcessarComparacaoExtrato([FromBody] CompararExtratoRequest request)
+        {
+            if (request == null || request.Lancamentos == null || !request.Lancamentos.Any())
+            {
+                return Json(new { success = true, conciliados = new List<object>(), apenasExtrato = new List<object>(), apenasSistema = new List<object>(), totalExtrato = 0, totalSistemaNoPeriodo = 0 });
+            }
+
+            var datas = request.Lancamentos.Select(l => l.Data.Date).Distinct().ToList();
+            if (!datas.Any())
+            {
+                return Json(new { success = true, conciliados = new List<object>(), apenasExtrato = new List<object>(), apenasSistema = new List<object>(), totalExtrato = 0, totalSistemaNoPeriodo = 0 });
+            }
+
+            var minDate = datas.Min();
+            var maxDate = datas.Max();
+
+            var lancamentosDb = await _context.Lancamentos
+                .Include(l => l.Categoria)
+                .Include(l => l.Conta)
+                .Where(l => l.ContaId == request.ContaId && l.Data.Date >= minDate && l.Data.Date <= maxDate)
+                .OrderBy(l => l.Data)
+                .ToListAsync();
+
+            var matchedDbIds = new HashSet<int>();
+            var conciliados = new List<object>();
+            var apenasExtrato = new List<object>();
+
+            foreach (var item in request.Lancamentos)
+            {
+                var match = lancamentosDb.FirstOrDefault(e => 
+                    !matchedDbIds.Contains(e.Id) &&
+                    e.Data.Date == item.Data.Date && 
+                    e.Valor == item.Valor && 
+                    (int)e.Tipo == item.Tipo);
+
+                if (match != null)
+                {
+                    matchedDbIds.Add(match.Id);
+                    conciliados.Add(new {
+                        extrato = new {
+                            data = item.Data.ToString("yyyy-MM-dd"),
+                            descricao = item.Descricao,
+                            valor = item.Valor,
+                            tipo = item.Tipo
+                        },
+                        sistema = new {
+                            id = match.Id,
+                            data = match.Data.ToString("yyyy-MM-dd"),
+                            descricao = match.Descricao,
+                            valor = match.Valor,
+                            tipo = (int)match.Tipo,
+                            categoriaNome = match.Categoria?.Nome ?? "Sem Categoria"
+                        }
+                    });
+                }
+                else
+                {
+                    apenasExtrato.Add(new {
+                        data = item.Data.ToString("yyyy-MM-dd"),
+                        descricao = item.Descricao,
+                        valor = item.Valor,
+                        tipo = item.Tipo
+                    });
+                }
+            }
+
+            var apenasSistema = lancamentosDb
+                .Where(e => !matchedDbIds.Contains(e.Id))
+                .Select(e => new {
+                    id = e.Id,
+                    data = e.Data.ToString("yyyy-MM-dd"),
+                    descricao = e.Descricao,
+                    valor = e.Valor,
+                    tipo = (int)e.Tipo,
+                    categoriaNome = e.Categoria?.Nome ?? "Sem Categoria"
+                })
+                .ToList();
+
+            return Json(new {
+                success = true,
+                conciliados,
+                apenasExtrato,
+                apenasSistema,
+                totalExtrato = request.Lancamentos.Count,
+                totalSistemaNoPeriodo = lancamentosDb.Count
+            });
+        }
     }
 
     public class VerificarDuplicadosRequest
@@ -518,4 +619,19 @@ namespace GestorContas.Web.Controllers
         public decimal Valor { get; set; }
         public int Tipo { get; set; }
     }
+
+    public class CompararExtratoRequest
+    {
+        public int ContaId { get; set; }
+        public List<LancamentoComparacaoItemDto> Lancamentos { get; set; } = new();
+    }
+
+    public class LancamentoComparacaoItemDto
+    {
+        public DateTime Data { get; set; }
+        public decimal Valor { get; set; }
+        public int Tipo { get; set; }
+        public string Descricao { get; set; }
+    }
 }
+
