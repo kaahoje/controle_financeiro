@@ -8,16 +8,21 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using GestorContas.Web.Models.ViewModels;
+using GestorContas.Web.Services.Conciliacao;
+using GestorContas.Web.Services.Conciliacao.Dtos;
+using System.Collections.Generic;
 
 namespace GestorContas.Web.Controllers
 {
     public class LancamentosController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly IConciliacaoBancariaService _conciliacaoService;
 
-        public LancamentosController(AppDbContext context)
+        public LancamentosController(AppDbContext context, IConciliacaoBancariaService conciliacaoService)
         {
             _context = context;
+            _conciliacaoService = conciliacaoService;
         }
 
         private bool IsAjaxRequest => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
@@ -417,14 +422,8 @@ namespace GestorContas.Web.Controllers
 
             try
             {
-                foreach (var lancamento in lancamentos)
-                {
-                    lancamento.Id = 0;
-                    _context.Lancamentos.Add(lancamento);
-                }
-
-                await _context.SaveChangesAsync();
-                return Json(new { success = true, message = $"{lancamentos.Count} lançamentos salvos com sucesso!" });
+                var salvos = await _conciliacaoService.SalvarLancamentosImportadosAsync(lancamentos);
+                return Json(new { success = true, message = $"{salvos} lançamentos salvos com sucesso!" });
             }
             catch (Exception ex)
             {
@@ -452,6 +451,25 @@ namespace GestorContas.Web.Controllers
             return Json(descricoes);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ObterSugestaoDescricao(int contaId, string descricao)
+        {
+            if (string.IsNullOrWhiteSpace(descricao))
+                return Json(new { success = false });
+
+            var sugestao = await _conciliacaoService.ObterSugestaoPorDescricaoAsync(contaId, descricao);
+            if (sugestao == null)
+                return Json(new { success = false });
+
+            return Json(new
+            {
+                success = true,
+                categoriaId = sugestao.CategoriaId,
+                categoriaNome = sugestao.CategoriaNome,
+                tipo = (int)sugestao.Tipo
+            });
+        }
+
         private bool LancamentoExists(int id)
         {
             return _context.Lancamentos.Any(e => e.Id == id);
@@ -466,41 +484,14 @@ namespace GestorContas.Web.Controllers
                 return Json(new { success = true, resultados = new List<object>() });
             }
 
-            var datas = request.Lancamentos.Select(l => l.Data.Date).Distinct().ToList();
-            if (!datas.Any())
+            var itens = request.Lancamentos.Select(l => new ItemExtratoDto
             {
-                return Json(new { success = true, resultados = new List<object>() });
-            }
+                Data = l.Data,
+                Valor = l.Valor,
+                Tipo = (TipoLancamento)l.Tipo
+            }).ToList();
 
-            var minDate = datas.Min();
-            var maxDate = datas.Max();
-
-            var existentes = await _context.Lancamentos
-                .Where(l => l.ContaId == request.ContaId && l.Data >= minDate && l.Data <= maxDate)
-                .Select(l => new { l.Id, l.Data, l.Valor, l.Tipo, l.Descricao })
-                .ToListAsync();
-
-            var matchedIds = new HashSet<int>();
-            var resultados = new List<object>();
-
-            foreach (var item in request.Lancamentos)
-            {
-                var match = existentes.FirstOrDefault(e => 
-                    e.Data.Date == item.Data.Date && 
-                    e.Valor == item.Valor && 
-                    (int)e.Tipo == item.Tipo &&
-                    !matchedIds.Contains(e.Id));
-
-                if (match != null)
-                {
-                    matchedIds.Add(match.Id);
-                    resultados.Add(new { status = "duplicado", dbId = match.Id, descricaoDb = match.Descricao });
-                }
-                else
-                {
-                    resultados.Add(new { status = "novo" });
-                }
-            }
+            var resultados = await _conciliacaoService.VerificarDuplicadosAsync(request.ContaId, itens);
 
             return Json(new { success = true, resultados });
         }
@@ -525,84 +516,62 @@ namespace GestorContas.Web.Controllers
                 return Json(new { success = true, conciliados = new List<object>(), apenasExtrato = new List<object>(), apenasSistema = new List<object>(), totalExtrato = 0, totalSistemaNoPeriodo = 0 });
             }
 
-            var datas = request.Lancamentos.Select(l => l.Data.Date).Distinct().ToList();
-            if (!datas.Any())
+            var itens = request.Lancamentos.Select(l => new ItemExtratoDto
             {
-                return Json(new { success = true, conciliados = new List<object>(), apenasExtrato = new List<object>(), apenasSistema = new List<object>(), totalExtrato = 0, totalSistemaNoPeriodo = 0 });
-            }
+                Data = l.Data,
+                Valor = l.Valor,
+                Tipo = (TipoLancamento)l.Tipo,
+                Descricao = l.Descricao
+            }).ToList();
 
-            var minDate = datas.Min();
-            var maxDate = datas.Max();
+            var resultado = await _conciliacaoService.ProcessarComparacaoExtratoAsync(request.ContaId, itens);
 
-            var lancamentosDb = await _context.Lancamentos
-                .Include(l => l.Categoria)
-                .Include(l => l.Conta)
-                .Where(l => l.ContaId == request.ContaId && l.Data.Date >= minDate && l.Data.Date <= maxDate)
-                .OrderBy(l => l.Data)
-                .ToListAsync();
-
-            var matchedDbIds = new HashSet<int>();
-            var conciliados = new List<object>();
-            var apenasExtrato = new List<object>();
-
-            foreach (var item in request.Lancamentos)
+            var conciliadosJson = resultado.Conciliados.Select(c => new
             {
-                var match = lancamentosDb.FirstOrDefault(e => 
-                    !matchedDbIds.Contains(e.Id) &&
-                    e.Data.Date == item.Data.Date && 
-                    e.Valor == item.Valor && 
-                    (int)e.Tipo == item.Tipo);
-
-                if (match != null)
+                extrato = new
                 {
-                    matchedDbIds.Add(match.Id);
-                    conciliados.Add(new {
-                        extrato = new {
-                            data = item.Data.ToString("yyyy-MM-dd"),
-                            descricao = item.Descricao,
-                            valor = item.Valor,
-                            tipo = item.Tipo
-                        },
-                        sistema = new {
-                            id = match.Id,
-                            data = match.Data.ToString("yyyy-MM-dd"),
-                            descricao = match.Descricao,
-                            valor = match.Valor,
-                            tipo = (int)match.Tipo,
-                            categoriaNome = match.Categoria?.Nome ?? "Sem Categoria"
-                        }
-                    });
-                }
-                else
+                    data = c.Extrato.Data.ToString("yyyy-MM-dd"),
+                    descricao = c.Extrato.Descricao,
+                    valor = c.Extrato.Valor,
+                    tipo = (int)c.Extrato.Tipo
+                },
+                sistema = new
                 {
-                    apenasExtrato.Add(new {
-                        data = item.Data.ToString("yyyy-MM-dd"),
-                        descricao = item.Descricao,
-                        valor = item.Valor,
-                        tipo = item.Tipo
-                    });
+                    id = c.Sistema.Id,
+                    data = c.Sistema.Data.ToString("yyyy-MM-dd"),
+                    descricao = c.Sistema.Descricao,
+                    valor = c.Sistema.Valor,
+                    tipo = (int)c.Sistema.Tipo,
+                    categoriaNome = c.Sistema.CategoriaNome
                 }
-            }
+            }).ToList();
 
-            var apenasSistema = lancamentosDb
-                .Where(e => !matchedDbIds.Contains(e.Id))
-                .Select(e => new {
-                    id = e.Id,
-                    data = e.Data.ToString("yyyy-MM-dd"),
-                    descricao = e.Descricao,
-                    valor = e.Valor,
-                    tipo = (int)e.Tipo,
-                    categoriaNome = e.Categoria?.Nome ?? "Sem Categoria"
-                })
-                .ToList();
+            var apenasExtratoJson = resultado.ApenasExtrato.Select(e => new
+            {
+                data = e.Data.ToString("yyyy-MM-dd"),
+                descricao = e.Descricao,
+                valor = e.Valor,
+                tipo = (int)e.Tipo
+            }).ToList();
 
-            return Json(new {
+            var apenasSistemaJson = resultado.ApenasSistema.Select(s => new
+            {
+                id = s.Id,
+                data = s.Data.ToString("yyyy-MM-dd"),
+                descricao = s.Descricao,
+                valor = s.Valor,
+                tipo = (int)s.Tipo,
+                categoriaNome = s.CategoriaNome
+            }).ToList();
+
+            return Json(new
+            {
                 success = true,
-                conciliados,
-                apenasExtrato,
-                apenasSistema,
-                totalExtrato = request.Lancamentos.Count,
-                totalSistemaNoPeriodo = lancamentosDb.Count
+                conciliados = conciliadosJson,
+                apenasExtrato = apenasExtratoJson,
+                apenasSistema = apenasSistemaJson,
+                totalExtrato = resultado.TotalExtrato,
+                totalSistemaNoPeriodo = resultado.TotalSistemaNoPeriodo
             });
         }
     }
@@ -631,7 +600,8 @@ namespace GestorContas.Web.Controllers
         public DateTime Data { get; set; }
         public decimal Valor { get; set; }
         public int Tipo { get; set; }
-        public string Descricao { get; set; }
+        public string Descricao { get; set; } = string.Empty;
     }
 }
+
 

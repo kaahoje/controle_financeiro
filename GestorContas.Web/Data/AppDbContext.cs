@@ -22,6 +22,11 @@ namespace GestorContas.Web.Data
                 .Property(l => l.Valor)
                 .HasPrecision(18, 2);
 
+            // DescricaoNoExtrato não deve ser alterada em edições futuras (not.update)
+            modelBuilder.Entity<Lancamento>()
+                .Property(l => l.DescricaoNoExtrato)
+                .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+
             // Configure the decimal precision for SaldoInicial in Conta
             modelBuilder.Entity<Conta>()
                 .Property(c => c.SaldoInicial)

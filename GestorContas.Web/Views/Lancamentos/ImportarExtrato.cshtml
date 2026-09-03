@@ -192,23 +192,56 @@
 
             const reader = new FileReader();
             reader.onload = (e) => {
-                const text = e.target.result;
-                
-                // Se o texto conter bytes nulos, provavelmente é UTF-16 lido como ISO-8859-1
-                if (text.includes('\0')) {
-                    console.log("Detectado bytes nulos no arquivo. Lendo novamente como UTF-16...");
-                    const utf16Reader = new FileReader();
-                    utf16Reader.onload = (e2) => {
-                        rawFileText = e2.target.result;
-                        processText(rawFileText, fileName);
-                    };
-                    utf16Reader.readAsText(file, 'UTF-16');
+                const buffer = e.target.result;
+                const bytes = new Uint8Array(buffer);
+
+                // 1. Verificar se possui BOM UTF-8 (EF BB BF)
+                let isUtf8 = false;
+                if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+                    isUtf8 = true;
                 } else {
-                    rawFileText = text;
-                    processText(rawFileText, fileName);
+                    // 2. Verificar se contém sequência válida UTF-8 para acentos (ex: Ã, Â, etc - 0xC3)
+                    // Ou caracteres nulos (UTF-16)
+                    let validUtf8Count = 0;
+                    let nullCount = 0;
+                    for (let i = 0; i < Math.min(bytes.length, 4096); i++) {
+                        if (bytes[i] === 0) nullCount++;
+                        if (bytes[i] === 0xC3 && i + 1 < bytes.length && (bytes[i + 1] >= 0x80 && bytes[i + 1] <= 0xBF)) {
+                            validUtf8Count++;
+                        }
+                    }
+
+                    if (nullCount > 0) {
+                        const decoderUtf16 = new TextDecoder('utf-16');
+                        rawFileText = decoderUtf16.decode(bytes);
+                        processText(rawFileText, fileName);
+                        return;
+                    }
+
+                    if (validUtf8Count > 0) {
+                        isUtf8 = true;
+                    }
                 }
+
+                const encoding = isUtf8 ? 'utf-8' : 'iso-8859-1';
+                const decoder = new TextDecoder(encoding);
+                rawFileText = decoder.decode(bytes);
+
+                // Caso tenha sido decodificado via ISO-8859-1 mas contenha o padrão mojibake (ex: "Ãª", "Ã¡", "Ã§")
+                if (!isUtf8 && (rawFileText.includes('Ã') || rawFileText.includes('Â'))) {
+                    try {
+                        const utf8Decoder = new TextDecoder('utf-8');
+                        const reDecoded = utf8Decoder.decode(bytes);
+                        if (!reDecoded.includes('')) {
+                            rawFileText = reDecoded;
+                        }
+                    } catch (err) {}
+                }
+
+                processText(rawFileText, fileName);
             };
-            reader.readAsText(file, 'ISO-8859-1');
+
+            reader.readAsArrayBuffer(file);
         }
 
         function processText(text, fileName) {
@@ -446,8 +479,10 @@
                 if (result.success && result.resultados) {
                     const lancamentosComStatus = parsedLancamentos.map((l, idx) => ({
                         ...l,
+                        tipo: result.resultados[idx].tipo || l.tipo,
                         status: result.resultados[idx].status,
-                        descricaoDb: result.resultados[idx].descricaoDb
+                        descricaoDb: result.resultados[idx].descricaoDb,
+                        categoriaIdSugerida: result.resultados[idx].categoriaIdSugerida
                     }));
                     displayResults(lancamentosComStatus);
                 } else {
@@ -484,10 +519,12 @@
                 
                 row.innerHTML = `
                     <td class="text-center">
-                        <input type="checkbox" class="form-check-input item-select" ${l.status === 'novo' ? 'checked' : ''}>
+                        <input type="checkbox" class="form-check-input item-select" ${l.status === 'novo' ? 'checked' : ''} tabindex="-1">
                     </td>
                     <td><input type="date" class="form-control form-control-sm item-data bg-light" value="${l.data}" readonly tabindex="-1"></td>
-                    <td><input type="text" class="form-control form-control-sm item-descricao" value="${l.descricao}" list="lista-descricoes" autocomplete="off"></td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm item-descricao" value="${l.descricao}" list="lista-descricoes" autocomplete="off" data-extrato="${l.descricao}">
+                    </td>
                     <td>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-light">R$</span>
@@ -501,7 +538,7 @@
                         </select>
                     </td>
                     <td>
-                        <select class="form-select form-select-sm item-categoria">
+                        <select class="form-select form-select-sm item-categoria" tabindex="-1">
                             ${tplCategoria.innerHTML}
                         </select>
                     </td>
@@ -516,6 +553,38 @@
                         </button>
                     </td>
                 `;
+
+                if (l.categoriaIdSugerida) {
+                    const selectCat = row.querySelector('.item-categoria');
+                    if (selectCat) selectCat.value = l.categoriaIdSugerida;
+                }
+
+                // Evento ao alterar a descrição da linha
+                const inputDesc = row.querySelector('.item-descricao');
+                if (inputDesc) {
+                    inputDesc.addEventListener('change', async () => {
+                        const novaDesc = inputDesc.value.trim();
+                        const contaId = parseInt(globalConta.value);
+                        if (!novaDesc || isNaN(contaId)) return;
+
+                        try {
+                            const response = await fetch(`@Url.Action("ObterSugestaoDescricao", "Lancamentos")?contaId=${contaId}&descricao=${encodeURIComponent(novaDesc)}`);
+                            const data = await response.json();
+                            if (data.success) {
+                                if (data.categoriaId) {
+                                    const selectCat = row.querySelector('.item-categoria');
+                                    if (selectCat) selectCat.value = data.categoriaId;
+                                }
+                                if (data.tipo) {
+                                    const selectTipo = row.querySelector('.item-tipo');
+                                    if (selectTipo) selectTipo.value = data.tipo;
+                                }
+                            }
+                        } catch (err) {
+                            console.error("Erro ao buscar sugestão de descrição:", err);
+                        }
+                    });
+                }
                 
                 row.querySelector('.btn-remove-row').addEventListener('click', () => {
                     row.remove();
@@ -591,9 +660,11 @@
             rows.forEach(row => {
                 const chk = row.querySelector('.item-select');
                 if (chk && chk.checked) {
+                    const inputDesc = row.querySelector('.item-descricao');
                     lancamentos.push({
                         Data: row.querySelector('.item-data').value,
-                        Descricao: row.querySelector('.item-descricao').value,
+                        Descricao: inputDesc.value,
+                        DescricaoNoExtrato: inputDesc.getAttribute('data-extrato') || inputDesc.value,
                         Valor: parseFloat(row.querySelector('.item-valor').value),
                         Tipo: parseInt(row.querySelector('.item-tipo').value),
                         CategoriaId: parseInt(row.querySelector('.item-categoria').value),

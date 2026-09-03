@@ -12,7 +12,11 @@ namespace GestorContas.Web.Models
         [Required(ErrorMessage = "O campo {0} é obrigatório")]
         [StringLength(200, ErrorMessage = "O campo {0} deve ter no máximo {1} caracteres")]
         [Display(Name = "Descrição")]
-        public string Descricao { get; set; }
+        public string Descricao { get; set; } = string.Empty;
+
+        [StringLength(200, ErrorMessage = "O campo {0} deve ter no máximo {1} caracteres")]
+        [Display(Name = "Descrição no Extrato")]
+        public string? DescricaoNoExtrato { get; set; }
 
         [Required(ErrorMessage = "O campo {0} é obrigatório")]
         [DataType(DataType.Currency)]

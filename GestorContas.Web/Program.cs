@@ -10,6 +10,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<GestorContas.Web.Data.AppDbContext>(options =>
     options.UseSqlite(connectionString));
 
+// Add Conciliação Services & Strategy (DDD)
+builder.Services.AddScoped<GestorContas.Web.Services.Conciliacao.IConciliacaoExtratoStrategy, GestorContas.Web.Services.Conciliacao.MatchExatoConciliacaoStrategy>();
+builder.Services.AddScoped<GestorContas.Web.Services.Conciliacao.IConciliacaoBancariaService, GestorContas.Web.Services.Conciliacao.ConciliacaoBancariaService>();
+
 // Add session support
 builder.Services.AddSession(options =>
 {
@@ -42,11 +46,25 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<GestorContas.Web.Data.AppDbContext>();
         context.Database.EnsureCreated();
+
+        // Garantir inclusão da nova coluna DescricaoNoExtrato se ainda não existir no SQLite existente
+        try
+        {
+            context.Database.ExecuteSqlRaw(@"
+                SELECT DescricaoNoExtrato FROM Lancamentos LIMIT 1;
+            ");
+        }
+        catch
+        {
+            context.Database.ExecuteSqlRaw(@"
+                ALTER TABLE Lancamentos ADD COLUMN DescricaoNoExtrato TEXT;
+            ");
+        }
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while creating the database.");
+        logger.LogError(ex, "An error occurred while creating/updating the database.");
     }
 }
 

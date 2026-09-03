@@ -1,4 +1,4 @@
-# Especificação Técnica: Módulo de Importação de Extratos e Conciliação Bancária
+# Especificação Técnica e Arquitetura: Módulo de Importação de Extratos e Conciliação Bancária
 
 > **Nota:** Este documento foi elaborado para servir como um guia completo e instrução técnica para modelos de Inteligência Artificial ou desenvolvedores implementarem ou refatorarem os recursos de **Importação de Extratos (CSV / OFX)** e **Conciliação Bancária** (anteriormente denominado "Comparar Extrato").
 
@@ -16,9 +16,58 @@ O módulo de **Lançamentos Financeiros** possui duas funcionalidades centrais r
 
 ---
 
-## 2. Modelos de Dados e Enumerações
+## 2. Arquitetura do Módulo (DDD + Strategy Pattern)
 
-### 2.1 Enum `TipoLancamento`
+Em conformidade com os princípios do **Domain-Driven Design (DDD)** e o **Strategy Pattern**, a regra de negócio da conciliação bancária é desacoplada dos controladores web:
+
+```mermaid
+flowchart TD
+    subgraph Presentation ["Camada de Apresentação"]
+        A[LancamentosController]
+    end
+
+    subgraph Application ["Camada de Aplicação e Serviços"]
+        B[IConciliacaoBancariaService]
+        C[ConciliacaoBancariaService]
+    end
+
+    subgraph Domain ["Camada de Domínio / Estratégias"]
+        D[IConciliacaoExtratoStrategy]
+        E[MatchExatoConciliacaoStrategy]
+    end
+
+    subgraph Data ["Banco de Dados"]
+        F[(AppDbContext / EF Core)]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    C --> F
+```
+
+### 2.1 Componentes Arquiteturais
+
+1. **Camada de Serviços (`GestorContas.Web.Services.Conciliacao`)**:
+   - `IConciliacaoBancariaService`: Interface do serviço de aplicação que expõe os casos de uso do módulo (`VerificarDuplicadosAsync`, `ProcessarComparacaoExtratoAsync`, `SalvarLancamentosImportadosAsync`).
+   - `ConciliacaoBancariaService`: Implementação concreta do serviço, responsável pela orquestração do banco de dados (EF Core) e chamada da estratégia de conciliação.
+
+2. **Estratégias de Conciliação (`Strategy Pattern`)**:
+   - `IConciliacaoExtratoStrategy`: Define o contrato para os algoritmos de pareamento entre dados do extrato e registros do banco.
+   - `MatchExatoConciliacaoStrategy`: Implementação da estratégia exata 1-para-1 por `Data.Date`, `Valor` e `Tipo`, com controle de duplicidade e pareamento utilizando `HashSet<int>`.
+
+3. **Injeção de Dependências (`Program.cs`)**:
+   ```csharp
+   builder.Services.AddScoped<IConciliacaoExtratoStrategy, MatchExatoConciliacaoStrategy>();
+   builder.Services.AddScoped<IConciliacaoBancariaService, ConciliacaoBancariaService>();
+   ```
+
+---
+
+## 3. Modelos de Dados e Enumerações
+
+### 3.1 Enum `TipoLancamento`
 ```csharp
 namespace GestorContas.Web.Models.Enums
 {
@@ -30,7 +79,7 @@ namespace GestorContas.Web.Models.Enums
 }
 ```
 
-### 2.2 Entidade `Lancamento`
+### 3.2 Entidade `Lancamento`
 ```csharp
 namespace GestorContas.Web.Models
 {
@@ -43,6 +92,10 @@ namespace GestorContas.Web.Models
         [StringLength(200, ErrorMessage = "O campo {0} deve ter no máximo {1} caracteres")]
         [Display(Name = "Descrição")]
         public string Descricao { get; set; }
+
+        [StringLength(200, ErrorMessage = "O campo {0} deve ter no máximo {1} caracteres")]
+        [Display(Name = "Descrição no Extrato")]
+        public string? DescricaoNoExtrato { get; set; }
 
         [Required(ErrorMessage = "O campo {0} é obrigatório")]
         [DataType(DataType.Currency)]
@@ -75,47 +128,63 @@ namespace GestorContas.Web.Models
 }
 ```
 
-### 2.3 DTOs para Requisições AJAX
+### 3.3 DTOs do Serviço de Conciliação (`GestorContas.Web.Services.Conciliacao.Dtos`)
 ```csharp
-public class VerificarDuplicadosRequest
-{
-    public int ContaId { get; set; }
-    public List<LancamentoImportacaoDto> Lancamentos { get; set; } = new();
-}
-
-public class LancamentoImportacaoDto
+public class ItemExtratoDto
 {
     public DateTime Data { get; set; }
     public decimal Valor { get; set; }
-    public int Tipo { get; set; }
+    public TipoLancamento Tipo { get; set; }
+    public string Descricao { get; set; } = string.Empty;
 }
 
-public class CompararExtratoRequest
+public class ItemConciliadoDto
 {
-    public int ContaId { get; set; }
-    public List<LancamentoComparacaoItemDto> Lancamentos { get; set; } = new();
+    public ItemExtratoDto Extrato { get; set; } = new();
+    public ItemSistemaDto Sistema { get; set; } = new();
 }
 
-public class LancamentoComparacaoItemDto
+public class ItemSistemaDto
 {
+    public int Id { get; set; }
     public DateTime Data { get; set; }
+    public string Descricao { get; set; } = string.Empty;
     public decimal Valor { get; set; }
-    public int Tipo { get; set; }
-    public string Descricao { get; set; }
+    public TipoLancamento Tipo { get; set; }
+    public string CategoriaNome { get; set; } = string.Empty;
+}
+
+public class ResultadoConciliacaoDto
+{
+    public List<ItemConciliadoDto> Conciliados { get; set; } = new();
+    public List<ItemExtratoDto> ApenasExtrato { get; set; } = new();
+    public List<ItemSistemaDto> ApenasSistema { get; set; } = new();
+    public int TotalExtrato => Conciliados.Count + ApenasExtrato.Count;
+    public int TotalSistemaNoPeriodo => Conciliados.Count + ApenasSistema.Count;
+}
+
+public class ResultadoVerificacaoDuplicadoDto
+{
+    public string Status { get; set; } = "novo"; // "duplicado" ou "novo"
+    public int? DbId { get; set; }
+    public string? DescricaoDb { get; set; }
 }
 ```
 
 ---
 
-## 3. Especificação de Ingestão e Parsing de Arquivos
+## 4. Especificação de Ingestão e Parsing de Arquivos
 
-### 3.1 Tratamento de Encodings
-- **Encoding Padrão**: Iniciar a leitura via `FileReader` utilizando o charset `ISO-8859-1` (comum em extratos bancários brasileiros).
-- **Detecção UTF-16**: Caso o conteúdo lido contenha caracteres nulos (`\0`), reexecutar o leitor configurando o encoding para `UTF-16`.
+### 4.1 Auto-detecção e Tratamento de Encodings
+Para evitar distorções de caracteres (mojibake) como `TransferÃªncia`, a leitura de arquivos utiliza inspeção por bytes (`readAsArrayBuffer` + `TextDecoder`):
+1. **Detecção por BOM UTF-8**: Se os 3 primeiros bytes forem `EF BB BF`, força decodificação em `utf-8`.
+2. **Inspeção de Sequências de Byte UTF-8 / Mojibake**: Examina a presença do byte inicial `0xC3` seguido por bytes de continuação `0x80-0xBF` comuns em textos com acentuação codificados em UTF-8.
+3. **Detecção UTF-16**: Presença de bytes nulos (`\0`) ativa decodificação via `utf-16`.
+4. **Fallback inteligente**: Se o leitor iniciar em ISO-8859-1 e produzir padrões de mojibake (contendo `Ã` ou `Â`), o leitor efetua fallback automático para `utf-8`.
 
 ---
 
-### 3.2 Parsing de Arquivo OFX (Open Financial Exchange)
+### 4.2 Parsing de Arquivo OFX (Open Financial Exchange)
 
 1. **Quebra em Blocos**:
    - Dividir o conteúdo utilizando a expressão regular `/<STMTTRN\s*>/i`.
@@ -132,7 +201,7 @@ public class LancamentoComparacaoItemDto
 
 ---
 
-### 3.3 Parsing de Arquivo CSV
+### 4.3 Parsing de Arquivo CSV
 
 1. **Detecção e Seleção de Delimitador**:
    - **Auto-detecção**: Varrer as primeiras 10 linhas contando a ocorrência de `;` (ponto e vírgula) vs `,` (vírgula). Se o total de vírgulas for maior, assumir separador `,`, caso contrário `;`.
@@ -155,111 +224,55 @@ public class LancamentoComparacaoItemDto
 
 ---
 
-## 4. Funcionalidade 1: Importar Extrato (`/Lancamentos/ImportarExtrato`)
+## 5. Funcionalidade 1: Importar Extrato (`/Lancamentos/ImportarExtrato`)
 
-### 4.1 Fluxo de Trabalho (Workflow)
+### 5.1 Fluxo de Trabalho (Workflow)
 ```mermaid
 flowchart TD
     A[Upload do Arquivo CSV/OFX] --> B[Parsing no Cliente JS]
     B --> C[Obter Lançamentos Extraídos]
     C --> D[Enviar AJAX para VerificarDuplicados]
-    D --> E[Servidor compara com DB no período/conta]
-    E --> F[Exibir Tabela com Status 'Falta Lançar' ou 'Duplicado']
-    F --> G[Usuário seleciona conta, categorias e itens]
-    G --> H[POST para SalvarLancamentosImportados]
-    H --> I[Salvo no Banco de Dados]
+    D --> E[Servidor chama ConciliacaoBancariaService]
+    E --> F[Service consulta DB e executa Strategy]
+    F --> G[Exibir Tabela com Status 'Falta Lançar' ou 'Duplicado']
+    G --> H[Usuário seleciona conta, categorias e itens]
+    H --> I[POST para SalvarLancamentosImportados]
+    I --> J[Salvo no Banco de Dados via Service]
 ```
 
-### 4.2 Verificação de Duplicados (`VerificarDuplicados`)
-- **Regra de Consulta**:
-  O servidor recebe `ContaId` e a lista de DTOs. Calcula `minDate` e `maxDate` dos lançamentos recebidos e busca no banco de dados:
-  ```csharp
-  var existentes = await _context.Lancamentos
-      .Where(l => l.ContaId == request.ContaId && l.Data >= minDate && l.Data <= maxDate)
-      .Select(l => new { l.Id, l.Data, l.Valor, l.Tipo, l.Descricao })
-      .ToListAsync();
-  ```
-- **Algoritmo de Correspondência (1 para 1)**:
-  Utiliza um `HashSet<int> matchedIds` para garantir que cada lançamento do banco corresponda a no máximo um lançamento importado.
-  - **Match**: `e.Data.Date == item.Data.Date && e.Valor == item.Valor && (int)e.Tipo == item.Tipo`.
-  - Retorna o status `"duplicado"` (marcando a linha com fundo destacado `table-warning-bg` e checkbox desmarcado por padrão) ou `"novo"` (checkbox marcado por padrão).
+### 5.2 Verificação de Duplicados e Atribuição de Categoria/Tipo por Aproximação (`VerificarDuplicados`)
+- **Regra do Serviço**:
+  O `LancamentosController` recebe a requisição, mapeia os DTOs e chama `_conciliacaoService.VerificarDuplicadosAsync(request.ContaId, itens)`.
+- **Regra de Localização por Aproximação (Ordem de Prioridade)**:
+  Quando um lançamento do extrato não for um duplicado exato, a estratégia `MatchExatoConciliacaoStrategy` faz uma busca por aproximação no histórico de lançamentos cadastrados na conta para sugerir a **Categoria** e adotar o mesmo **Tipo** (Entrada/Saída):
+  1. **1ª Preferência**: Match por `Descricao` exata.
+  2. **2ª Preferência**: Match por `DescricaoNoExtrato` exata.
+  3. **3ª Preferência**: Match por sub-string/contém em `Descricao`.
+  4. **4ª Preferência**: Match por sub-string/contém em `DescricaoNoExtrato`.
+- Ao encontrar um lançamento relevante nessa ordem de preferência, a estratégia atribui automaticamente a `CategoriaIdSugerida` e atualiza o `Tipo` do lançamento importado para o mesmo tipo encontrado no histórico.
 
-### 4.3 Salvamento em Lote (`SalvarLancamentosImportados`)
-- O cliente filtra as linhas com checkbox marcado e envia via `JSON` para o endpoint `/Lancamentos/SalvarLancamentosImportados`.
-- O servidor define `Id = 0` para cada objeto e executa `_context.Lancamentos.Add(lancamento)` seguido de `SaveChangesAsync()`.
+### 5.3 Salvamento em Lote (`SalvarLancamentosImportados`)
+- O cliente envia os lançamentos via `JSON` para o endpoint `/Lancamentos/SalvarLancamentosImportados`, incluindo o valor de `DescricaoNoExtrato` (preservando o texto original vindo do extrato).
+- O controller delega a execução para `_conciliacaoService.SalvarLancamentosImportadosAsync(lancamentos)`.
+- O serviço garante `Id = 0` para cada objeto e executa `_context.Lancamentos.Add(lancamento)` seguido de `SaveChangesAsync()`.
 
 ---
 
-## 5. Funcionalidade 2: Conciliação Bancária (`/Lancamentos/CompararExtrato`)
+## 6. Funcionalidade 2: Conciliação Bancária (`/Lancamentos/CompararExtrato`)
 
-### 5.1 Conceito e Diferencial
-Diferente da importação direta, a **Conciliação Bancária** foca no cruzamento completo das duas fontes de dados no período do extrato:
+### 6.1 Conceito e Diferencial
+A **Conciliação Bancária** foca no cruzamento completo das duas fontes de dados no período do extrato:
 1. **Extrato Bancário** (arquivo importado).
 2. **Sistema Financial** (lançamentos existentes no banco de dados para a conta e período).
 
-### 5.2 Algoritmo de Processamento da Conciliação (`ProcessarComparacaoExtrato`)
-```csharp
-[HttpPost]
-[ValidateAntiForgeryToken]
-public async Task<IActionResult> ProcessarComparacaoExtrato([FromBody] CompararExtratoRequest request)
-{
-    if (request == null || request.Lancamentos == null || !request.Lancamentos.Any())
-        return Json(new { success = true, conciliados = new List<object>(), apenasExtrato = new List<object>(), apenasSistema = new List<object>(), totalExtrato = 0, totalSistemaNoPeriodo = 0 });
+### 6.2 Algoritmo de Processamento da Conciliação (`ProcessarComparacaoExtrato`)
+- O controller recebe a requisição AJAX, converte em `List<ItemExtratoDto>` e chama `_conciliacaoService.ProcessarComparacaoExtratoAsync(request.ContaId, itens)`.
+- O serviço obtém os registros cadastrados no DB no período e invoca a estratégia `MatchExatoConciliacaoStrategy.Conciliar`, separando os registros nos 3 grupos:
+  - `Conciliados`: Pareamento exato por `Data.Date`, `Valor` e `Tipo`.
+  - `ApenasExtrato`: Presentes apenas no extrato.
+  - `ApenasSistema`: Registros cadastrados no sistema sem correspondente no extrato.
 
-    var datas = request.Lancamentos.Select(l => l.Data.Date).Distinct().ToList();
-    var minDate = datas.Min();
-    var maxDate = datas.Max();
-
-    var lancamentosDb = await _context.Lancamentos
-        .Include(l => l.Categoria)
-        .Include(l => l.Conta)
-        .Where(l => l.ContaId == request.ContaId && l.Data.Date >= minDate && l.Data.Date <= maxDate)
-        .OrderBy(l => l.Data)
-        .ToListAsync();
-
-    var matchedDbIds = new HashSet<int>();
-    var conciliados = new List<object>();
-    var apenasExtrato = new List<object>();
-
-    foreach (var item in request.Lancamentos)
-    {
-        var match = lancamentosDb.FirstOrDefault(e => 
-            !matchedDbIds.Contains(e.Id) &&
-            e.Data.Date == item.Data.Date && 
-            e.Valor == item.Valor && 
-            (int)e.Tipo == item.Tipo);
-
-        if (match != null)
-        {
-            matchedDbIds.Add(match.Id);
-            conciliados.Add(new {
-                extrato = new { data = item.Data.ToString("yyyy-MM-dd"), descricao = item.Descricao, valor = item.Valor, tipo = item.Tipo },
-                sistema = new { id = match.Id, data = match.Data.ToString("yyyy-MM-dd"), descricao = match.Descricao, valor = match.Valor, tipo = (int)match.Tipo, categoriaNome = match.Categoria?.Nome ?? "Sem Categoria" }
-            });
-        }
-        else
-        {
-            apenasExtrato.Add(new { data = item.Data.ToString("yyyy-MM-dd"), descricao = item.Descricao, valor = item.Valor, tipo = item.Tipo });
-        }
-    }
-
-    var apenasSistema = lancamentosDb
-        .Where(e => !matchedDbIds.Contains(e.Id))
-        .Select(e => new { id = e.Id, data = e.Data.ToString("yyyy-MM-dd"), descricao = e.Descricao, valor = e.Valor, tipo = (int)e.Tipo, categoriaNome = e.Categoria?.Nome ?? "Sem Categoria" })
-        .ToList();
-
-    return Json(new {
-        success = true,
-        conciliados,
-        apenasExtrato,
-        apenasSistema,
-        totalExtrato = request.Lancamentos.Count,
-        totalSistemaNoPeriodo = lancamentosDb.Count
-    });
-}
-```
-
-### 5.3 Interface de Usuário da Conciliação
+### 6.3 Interface de Usuário da Conciliação
 
 1. **Cards Resumo (KPIs)**:
    - **No Extrato**: Quantidade total de lançamentos lidos do arquivo.
@@ -274,29 +287,30 @@ public async Task<IActionResult> ProcessarComparacaoExtrato([FromBody] CompararE
    - **Aba 2: Conciliados**:
      - Apresenta a comparação lado a lado da descrição do extrato vs descrição do sistema, valor, tipo e categoria atribuída, acompanhado do badge `OK`.
    - **Aba 3: Apenas no Sistema**:
-     - Apresenta os lançamentos cadastrados no sistema dentro do período de datas do extrato, porém sem correspondência no arquivo. Permite auditoria de lançamentos em duplicidade manual ou datas errôneas.
+     - Apresenta os lançamentos cadastrados no sistema dentro do período de datas do extrato, porém sem correspondência no arquivo.
 
 ---
 
-## 6. Endpoints da API (Controllers)
+## 7. Endpoints da API (Controllers)
 
 | Método HTTP | Rota | Descrição |
 | :--- | :--- | :--- |
 | `GET` | `/Lancamentos/ImportarExtrato` | Renderiza a tela ou partial modal de importação |
 | `GET` | `/Lancamentos/CompararExtrato` | Renderiza a tela ou partial modal de conciliação bancária |
 | `GET` | `/Lancamentos/GetDescricoes` | Retorna lista distinct de descrições históricas para autocomplete |
-| `POST` | `/Lancamentos/VerificarDuplicados` | Verifica se lançamentos do extrato já existem no banco por conta/data/valor/tipo |
-| `POST` | `/Lancamentos/ProcessarComparacaoExtrato` | Executa o algoritmo de conciliação (Match 1:1) e retorna os 3 grupos |
-| `POST` | `/Lancamentos/SalvarLancamentosImportados` | Salva uma lista de lançamentos em lote no banco de dados |
+| `GET` | `/Lancamentos/ObterSugestaoDescricao` | Busca no histórico da conta o Tipo e Categoria mais prováveis para uma descrição alterada |
+| `POST` | `/Lancamentos/VerificarDuplicados` | Delega ao `IConciliacaoBancariaService` a verificação de duplicidade |
+| `POST` | `/Lancamentos/ProcessarComparacaoExtrato` | Delega ao `IConciliacaoBancariaService` a execução da estratégia de conciliação |
+| `POST` | `/Lancamentos/SalvarLancamentosImportados` | Delega ao `IConciliacaoBancariaService` a gravação em lote no banco |
 
 ---
 
-## 7. Requisitos de UX / UI para Modelos de IA Implementadores
+## 8. Requisitos de UX / UI para Modelos de IA Implementadores
 
 1. **Suporte AJAX / Modal**:
-   - As views devem detectar se a requisição é AJAX (`Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest"`). Em caso afirmativo, definir `Layout = null` para compatibilidade com exibição em modais sem duplicar o layout global.
+   - As views devem detectar se a requisição é AJAX (`Context.Request.Headers["X-Requested-With"] == "XMLHttpRequest"`). Em caso afirmativo, definir `Layout = null` para exibição em modais sem duplicar o layout global.
 2. **Segurança e Validação**:
    - Incluir token anti-forgery (`@Html.AntiForgeryToken()`) e enviar no header `RequestVerificationToken` em todas as chamadas `fetch` do tipo `POST`.
 3. **Feedback do Usuário**:
-   - Utilizar biblioteca visual de alertas (ex: `SweetAlert2`) para confirmações de ação (limpar lista, erro no parsing, sucesso na gravação).
+   - Utilizar `SweetAlert2` para confirmações de ação (limpar lista, erro no parsing, sucesso na gravação).
    - Exibir spinners/progress-bar durante o processamento do arquivo e requisições AJAX.
