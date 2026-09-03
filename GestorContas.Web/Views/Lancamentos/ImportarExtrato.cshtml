@@ -523,7 +523,7 @@
                     </td>
                     <td><input type="date" class="form-control form-control-sm item-data bg-light" value="${l.data}" readonly tabindex="-1"></td>
                     <td>
-                        <input type="text" class="form-control form-control-sm item-descricao" value="${l.descricao}" list="lista-descricoes" autocomplete="off" data-extrato="${l.descricao}">
+                        <input type="text" class="form-control form-control-sm item-descricao" value="${l.descricao}" list="lista-descricoes" autocomplete="off" data-extrato="${l.descricao}" style="min-width: 400px;">
                     </td>
                     <td>
                         <div class="input-group input-group-sm">
@@ -717,6 +717,8 @@
 </script>
 
 <style>
+    #mainModal .modal-dialog { max-width: 95vw !important; }
+    .item-descricao { min-width: 400px !important; }
     .cursor-pointer { cursor: pointer; }
     #drop-zone:hover { border-color: #0d6efd !important; background-color: rgba(13, 110, 253, 0.05) !important; }
     .border-dashed { border-style: dashed !important; }

@@ -3,7 +3,7 @@ function abrirModal(url, titulo, tamanho = '') {
     $('#mainModalBody').html('<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
     
     // Reset e aplica tamanho
-    $('#mainModal .modal-dialog').removeClass('modal-sm modal-lg modal-xl').addClass(tamanho);
+    $('#mainModal .modal-dialog').removeClass('modal-sm modal-lg modal-xl modal-fullscreen-custom').addClass(tamanho);
     
     $('#mainModal').modal('show');
 
