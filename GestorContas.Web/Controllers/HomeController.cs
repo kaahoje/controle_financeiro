@@ -34,6 +34,39 @@ public class HomeController : Controller
         return Json(diagnostico);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> ObterSaldoDataCorteJson(DateTime dataCorte)
+    {
+        var dataLimite = dataCorte.Date.AddDays(1).AddTicks(-1);
+
+        var contas = await _context.Contas
+            .Include(c => c.Lancamentos)
+            .Where(c => c.Ativa)
+            .ToListAsync();
+
+        var resultado = contas.Select(c =>
+        {
+            var ent = c.Lancamentos?.Where(l => l.Data <= dataLimite && l.Tipo == TipoLancamento.Entrada).Sum(l => l.Valor) ?? 0;
+            var sai = c.Lancamentos?.Where(l => l.Data <= dataLimite && l.Tipo == TipoLancamento.Saida).Sum(l => l.Valor) ?? 0;
+            var saldoNaData = c.SaldoInicial + ent - sai;
+
+            return new
+            {
+                c.Id,
+                c.Nome,
+                c.SaldoInicial,
+                c.ConsiderarNoDiagnostico,
+                TotalEntradas = ent,
+                TotalSaidas = sai,
+                SaldoNaData = saldoNaData
+            };
+        }).ToList();
+
+        var totalGeral = resultado.Where(x => x.ConsiderarNoDiagnostico).Sum(x => x.SaldoNaData);
+
+        return Json(new { DataCorte = dataCorte.ToString("dd/MM/yyyy"), TotalGeral = totalGeral, Contas = resultado });
+    }
+
     public async Task<IActionResult> Index(int? mes, int? ano)
     {
         var dashboard = new DashboardViewModel();

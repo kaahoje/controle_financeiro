@@ -17,46 +17,41 @@
                 </h2>
             </div>
             <div class="header-actions-container">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-                    <p class="lead text-muted mb-0">
-                        Resumo financeiro de <strong>@Model.ResumoMensal.MesAno.ToString("MMMM/yyyy")</strong>
-                    </p>
-
-                    <form id="formFiltroDashboard" method="get" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-end">
-                        <div class="d-flex gap-2">
-                            <div>
-                                <label class="form-label fw-bold mb-1 small">Mês</label>
-                                <select name="mes" id="filtroMesDashboard" class="form-select form-select-sm" style="min-width: 120px;">
-                                    <option value="1" selected="@(ViewBag.MesSelecionado == 1)">Janeiro</option>
-                                    <option value="2" selected="@(ViewBag.MesSelecionado == 2)">Fevereiro</option>
-                                    <option value="3" selected="@(ViewBag.MesSelecionado == 3)">Março</option>
-                                    <option value="4" selected="@(ViewBag.MesSelecionado == 4)">Abril</option>
-                                    <option value="5" selected="@(ViewBag.MesSelecionado == 5)">Maio</option>
-                                    <option value="6" selected="@(ViewBag.MesSelecionado == 6)">Junho</option>
-                                    <option value="7" selected="@(ViewBag.MesSelecionado == 7)">Julho</option>
-                                    <option value="8" selected="@(ViewBag.MesSelecionado == 8)">Agosto</option>
-                                    <option value="9" selected="@(ViewBag.MesSelecionado == 9)">Setembro</option>
-                                    <option value="10" selected="@(ViewBag.MesSelecionado == 10)">Outubro</option>
-                                    <option value="11" selected="@(ViewBag.MesSelecionado == 11)">Novembro</option>
-                                    <option value="12" selected="@(ViewBag.MesSelecionado == 12)">Dezembro</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label fw-bold mb-1 small">Ano</label>
-                                <select name="ano" id="filtroAnoDashboard" class="form-select form-select-sm" style="min-width: 100px;">
+                <div class="d-flex flex-column gap-2">
+                    <form id="formFiltroDashboard" method="get" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+                        <input type="hidden" name="mes" id="filtroMesDashboard" value="@ViewBag.MesSelecionado" />
+                        
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="d-flex align-items-center me-2">
+                                <label class="form-label fw-bold mb-0 me-2 small">Ano:</label>
+                                <select name="ano" id="filtroAnoDashboard" class="form-select form-select-sm" style="min-width: 90px;">
                                     @for (int ano = DateTime.Today.Year; ano >= DateTime.Today.Year - 5; ano--)
                                     {
                                         <option value="@ano" selected="@(ViewBag.AnoSelecionado == ano)">@ano</option>
                                     }
                                 </select>
                             </div>
-                        </div>
-                        <div class="d-flex gap-2">
-                            <a asp-action="Index" class="btn btn-outline-secondary btn-sm px-3">
-                                <i class="bi bi-arrow-clockwise me-1"></i> Mês Atual
-                            </a>
-                        </div>
+
+                            <div class="btn-group btn-group-sm flex-wrap" role="group" aria-label="Seleção de mês">
+                                @{
+                                    var mesesAbrev = new[] { "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez" };
+                                }
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    var ativo = ViewBag.MesSelecionado == m;
+                                    <button type="button" 
+                                            class="btn btn-sm btn-mes-filtro @(ativo ? "btn-primary active fw-bold" : "btn-outline-secondary")" 
+                                            data-mes="@m">
+                                        @mesesAbrev[m - 1]
+                                    </button>
+                                }
+                            </div>
+                        </div>                        
                     </form>
+
+                    <p class="lead text-muted mb-0 mt-1">
+                        Resumo financeiro de <strong>@Model.ResumoMensal.MesAno.ToString("MMMM/yyyy")</strong>
+                    </p>
                 </div>
             </div>
         </div>
@@ -500,56 +495,68 @@
                 });
         }
 
-        // Auto-filtrar ao alterar mes ou ano no dashboard usando AJAX
+        // Auto-filtrar ao alterar mes (botoes) ou ano (select) no dashboard usando AJAX
         $(function() {
-            $(document).on('change', '#formFiltroDashboard select', function() {
-                const form = $('#formFiltroDashboard');
-                const url = form.attr('action') || window.location.pathname;
-                const formData = form.serialize();
+            let requisicaoEmAndamento = false;
+
+            function carregarDashboard(formData) {
+                if (requisicaoEmAndamento) return;
+                requisicaoEmAndamento = true;
+
+                const url = $('#formFiltroDashboard').attr('action') || window.location.pathname;
 
                 $.get(url + '?' + formData, function (data) {
-                    // Substitui o dashboardContainer com o novo conteúdo retornado
-                    $('#dashboardContainer').html($(data).find('#dashboardContainer').html());
-                    
-                    // Como o HTML foi substituído, precisamos reinicializar os gráficos com os dados atualizados que vieram no novo HTML.
-                    // Para garantir que o Chart.js encontre os novos canvases e recrie os gráficos, vamos ler os novos scripts que foram retornados e reexecutá-los.
-                    const scriptsHtml = $(data).filter('script').html() || $(data).find('script').html();
-                    
-                    // Destruir gráficos anteriores se existirem (para evitar erros do Chart.js de canvas já em uso)
-                    if (window.chartFluxoCaixaInst) window.chartFluxoCaixaInst.destroy();
-                    if (window.chartDespesasInst) window.chartDespesasInst.destroy();
-                    if (window.chartEvolucaoSaldoInst) window.chartEvolucaoSaldoInst.destroy();
-
-                    // Obter os scripts executáveis do retorno AJAX e rodar
                     const responseDoc = document.createElement('html');
                     responseDoc.innerHTML = data;
-                    const scripts = responseDoc.querySelectorAll('script');
-                    scripts.forEach(oldScript => {
-                        if (oldScript.text && !oldScript.src) {
-                            try {
-                                // Remover let/const duplicados ou rodar num escopo isolado
-                                const cleanCode = oldScript.text
-                                    .replace(/const ctxFluxo/g, 'var ctxFluxo')
-                                    .replace(/const ctxDespesas/g, 'var ctxDespesas')
-                                    .replace(/const ctxEvolucao/g, 'var ctxEvolucao')
-                                    .replace(/const brl/g, 'var brl')
-                                    .replace(/const valueLabelPlugin/g, 'var valueLabelPlugin');
-                                    
-                                // Redireciona a atribuição do Chart para instâncias globais para podermos destruí-las depois
-                                const finalCode = cleanCode
-                                    .replace(/new Chart\(ctxFluxo/g, 'window.chartFluxoCaixaInst = new Chart(ctxFluxo')
-                                    .replace(/new Chart\(ctxDespesas/g, 'window.chartDespesasInst = new Chart(ctxDespesas')
-                                    .replace(/new Chart\(ctxEvolucao/g, 'window.chartEvolucaoSaldoInst = new Chart(ctxEvolucao');
 
-                                eval(finalCode);
-                            } catch (e) {
-                                console.error('Erro ao reinicializar gráficos:', e);
+                    const $newContainer = $(responseDoc).find('#dashboardContainer');
+                    if ($newContainer.length > 0) {
+                        // Destruir instâncias ativas do Chart.js
+                        if (window.chartFluxoCaixaInst) { window.chartFluxoCaixaInst.destroy(); window.chartFluxoCaixaInst = null; }
+                        if (window.chartDespesasInst) { window.chartDespesasInst.destroy(); window.chartDespesasInst = null; }
+                        if (window.chartEvolucaoSaldoInst) { window.chartEvolucaoSaldoInst.destroy(); window.chartEvolucaoSaldoInst = null; }
+
+                        $('#dashboardContainer').replaceWith($newContainer);
+
+                        // Reexecutar os scripts inline que contêm os novos dados serializados dos gráficos
+                        const scripts = responseDoc.querySelectorAll('script');
+                        scripts.forEach(s => {
+                            if (s.text && s.text.includes('chartFluxoCaixa')) {
+                                try {
+                                    // Isolamos a execução dos scripts de inicialização de gráfico
+                                    const cleanScript = s.text
+                                        .replace(/const ctxFluxo/g, 'var ctxFluxo')
+                                        .replace(/const ctxDespesas/g, 'var ctxDespesas')
+                                        .replace(/const ctxEvolucao/g, 'var ctxEvolucao')
+                                        .replace(/const despesasLabels/g, 'var despesasLabels')
+                                        .replace(/const despesasValores/g, 'var despesasValores')
+                                        .replace(/const despesasCores/g, 'var despesasCores')
+                                        .replace(/const brl/g, 'var brl')
+                                        .replace(/const valueLabelPlugin/g, 'var valueLabelPlugin');
+                                    eval(cleanScript);
+                                } catch (e) {
+                                    console.error('Erro ao recriar gráficos via AJAX:', e);
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }).fail(function () {
                     console.error('Erro ao filtrar dashboard via AJAX');
+                }).always(function() {
+                    requisicaoEmAndamento = false;
                 });
+            }
+
+            $(document).off('click', '.btn-mes-filtro').on('click', '.btn-mes-filtro', function(e) {
+                e.preventDefault();
+                const mes = $(this).data('mes');
+                $('#filtroMesDashboard').val(mes);
+                carregarDashboard($('#formFiltroDashboard').serialize());
+            });
+
+            $(document).off('change', '#filtroAnoDashboard').on('change', '#filtroAnoDashboard', function(e) {
+                e.preventDefault();
+                carregarDashboard($('#formFiltroDashboard').serialize());
             });
         });
     </script>

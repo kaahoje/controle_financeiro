@@ -74,7 +74,10 @@ function bindFormEvents() {
 }
 
 function initAutocomplete(selector, url) {
-    $(selector).autocomplete({
+    const $elem = $(selector);
+    if ($elem.length === 0) return;
+
+    $elem.autocomplete({
         source: function (request, response) {
             $.getJSON(url, { term: request.term }, response);
         },
@@ -83,11 +86,16 @@ function initAutocomplete(selector, url) {
             $(this).val(ui.item.value);
             return false;
         }
-    }).autocomplete("instance")._renderItem = function (ul, item) {
-        return $("<li>")
-            .append("<div class='d-flex align-items-center py-1'><i class='bi bi-clock-history me-2 text-muted'></i>" + item.value + "</div>")
-            .appendTo(ul);
-    };
+    });
+
+    const instance = $elem.autocomplete("instance");
+    if (instance) {
+        instance._renderItem = function (ul, item) {
+            return $("<li>")
+                .append("<div class='d-flex align-items-center py-1'><i class='bi bi-clock-history me-2 text-muted'></i>" + item.value + "</div>")
+                .appendTo(ul);
+        };
+    }
 }
 
 function showToast(message, title = 'Notificação', type = 'info') {
