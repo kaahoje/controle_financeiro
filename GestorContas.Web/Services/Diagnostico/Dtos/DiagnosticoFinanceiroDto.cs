@@ -75,6 +75,8 @@ namespace GestorContas.Web.Services.Diagnostico.Dtos
         public decimal SaidasOperacionais { get; set; }
         public decimal ResultadoOperacionalMes { get; set; }
         public decimal SaldoAcumuladoResultadoMes { get; set; }
+        public decimal EntradasTransferencia { get; set; }
+        public decimal SaidasTransferencia { get; set; }
         public decimal TransferenciasMes { get; set; }
         public decimal SaldoAcumuladoFimMes { get; set; }
         public decimal DivergenciaSaldo { get; set; }

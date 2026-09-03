@@ -327,14 +327,18 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="p-3 bg-light border-bottom d-flex gap-2">
+                <div class="p-3 bg-light border-bottom d-flex gap-2 align-items-center">
                     <input type="text" id="filtroModalTexto" class="form-control form-control-sm" placeholder="Filtrar por descrição, conta ou categoria...">
-                    <select id="filtroModalTipo" class="form-select form-select-sm" style="max-width: 200px;">
+                    <select id="filtroModalTipo" class="form-select form-select-sm" style="max-width: 180px;">
                         <option value="">Todos os tipos</option>
                         <option value="Entrada">Entradas</option>
                         <option value="Saída">Saídas</option>
                         <option value="Transferência">Apenas Transferências</option>
                     </select>
+                    <div class="form-check form-switch mb-0 ms-2 text-nowrap">
+                        <input class="form-check-input" type="checkbox" id="chkAgruparTipo">
+                        <label class="form-check-label small fw-semibold" for="chkAgruparTipo">Agrupar por Tipo</label>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle mb-0">
@@ -383,11 +387,13 @@
 
         document.getElementById('filtroModalTexto').addEventListener('input', renderizarLancamentosModal);
         document.getElementById('filtroModalTipo').addEventListener('change', renderizarLancamentosModal);
+        document.getElementById('chkAgruparTipo').addEventListener('change', renderizarLancamentosModal);
 
         function renderizarLancamentosModal() {
             const tbody = document.getElementById('tbodyDetalhesMes');
             const term = document.getElementById('filtroModalTexto').value.toLowerCase();
             const tipoFiltro = document.getElementById('filtroModalTipo').value;
+            const agrupar = document.getElementById('chkAgruparTipo').checked;
 
             tbody.innerHTML = '';
 
@@ -410,7 +416,62 @@
                 return;
             }
 
-            filtrados.forEach(l => {
+            if (!agrupar) {
+                renderizarLinhas(filtrados, tbody);
+            } else {
+                // Agrupar estritamente em ENTRADAS (Operacionais + Transferências de Entrada) e SAÍDAS (Operacionais + Transferências de Saída)
+                const grupos = [
+                    { 
+                        titulo: '🟢 TODAS AS ENTRADAS DO MÊS', 
+                        classe: 'table-success', 
+                        items: filtrados.filter(x => x.Tipo === 'Entrada'),
+                        subgrupos: [
+                            { nome: 'Entradas Operacionais', items: filtrados.filter(x => x.Tipo === 'Entrada' && !x.IsTransferencia) },
+                            { nome: 'Transferências Recebidas', items: filtrados.filter(x => x.Tipo === 'Entrada' && x.IsTransferencia) }
+                        ]
+                    },
+                    { 
+                        titulo: '🔴 TODAS AS SAÍDAS DO MÊS', 
+                        classe: 'table-danger', 
+                        items: filtrados.filter(x => x.Tipo === 'Saída'),
+                        subgrupos: [
+                            { nome: 'Saídas Operacionais (Despesas)', items: filtrados.filter(x => x.Tipo === 'Saída' && !x.IsTransferencia) },
+                            { nome: 'Transferências Enviadas', items: filtrados.filter(x => x.Tipo === 'Saída' && x.IsTransferencia) }
+                        ]
+                    }
+                ];
+
+                grupos.forEach(g => {
+                    if (g.items.length > 0) {
+                        const totalGrupo = g.items.reduce((acc, curr) => acc + curr.Valor, 0);
+                        const headerTr = document.createElement('tr');
+                        headerTr.className = `${g.classe} fw-bold border-top border-dark`;
+                        headerTr.innerHTML = `
+                            <td colspan="6" class="fs-6">${g.titulo} (${g.items.length} lançamentos)</td>
+                            <td class="text-end font-monospace fs-6">R$ ${totalGrupo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                        `;
+                        tbody.appendChild(headerTr);
+
+                        g.subgrupos.forEach(sub => {
+                            if (sub.items.length > 0) {
+                                const totalSub = sub.items.reduce((acc, curr) => acc + curr.Valor, 0);
+                                const subHeaderTr = document.createElement('tr');
+                                subHeaderTr.className = 'table-light text-muted small fw-semibold';
+                                subHeaderTr.innerHTML = `
+                                    <td colspan="6" class="ps-4">↳ ${sub.nome} (${sub.items.length})</td>
+                                    <td class="text-end font-monospace">R$ ${totalSub.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+                                `;
+                                tbody.appendChild(subHeaderTr);
+                                renderizarLinhas(sub.items, tbody);
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        function renderizarLinhas(lista, tbody) {
+            lista.forEach(l => {
                 const tr = document.createElement('tr');
                 const dataFmt = l.Data ? l.Data.split('T')[0].split('-').reverse().join('/') : '';
                 const valorFmt = l.Valor ? l.Valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00';

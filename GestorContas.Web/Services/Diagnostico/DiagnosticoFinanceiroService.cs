@@ -230,6 +230,9 @@ namespace GestorContas.Web.Services.Diagnostico
                     var saiOp = lancsMes.Where(x => x.Tipo == TipoLancamento.Saida && x.Categoria?.ParaTransferencia == false).Sum(x => x.Valor);
                     var resOp = entOp - saiOp;
 
+                    var entTransf = lancsMes.Where(x => x.Tipo == TipoLancamento.Entrada && x.Categoria?.ParaTransferencia == true).Sum(x => x.Valor);
+                    var saiTransf = lancsMes.Where(x => x.Tipo == TipoLancamento.Saida && x.Categoria?.ParaTransferencia == true).Sum(x => x.Valor);
+
                     // Somando saldo acumulado de todas as movimentações
                     var entTotal = lancsMes.Where(x => x.Tipo == TipoLancamento.Entrada).Sum(x => x.Valor);
                     var saiTotal = lancsMes.Where(x => x.Tipo == TipoLancamento.Saida).Sum(x => x.Valor);
@@ -258,7 +261,9 @@ namespace GestorContas.Web.Services.Diagnostico
                         SaidasOperacionais = saiOp,
                         ResultadoOperacionalMes = resOp,
                         SaldoAcumuladoResultadoMes = acumuladoPuroResultados,
-                        TransferenciasMes = lancsMes.Where(x => x.Categoria?.ParaTransferencia == true).Sum(x => x.Valor),
+                        EntradasTransferencia = entTransf,
+                        SaidasTransferencia = saiTransf,
+                        TransferenciasMes = entTransf + saiTransf,
                         SaldoAcumuladoFimMes = acumuladoHistorico,
                         DivergenciaSaldo = acumuladoHistorico - acumuladoPuroResultados,
                         LancamentosMes = detalhesLancs
