@@ -215,6 +215,7 @@ namespace GestorContas.Web.Services.Diagnostico
                 var fim = new DateTime(maxData.Year, maxData.Month, 1);
 
                 decimal acumuladoHistorico = saldoInicialTotal;
+                decimal acumuladoPuroResultados = saldoInicialTotal;
 
                 while (cursor <= fim)
                 {
@@ -234,6 +235,19 @@ namespace GestorContas.Web.Services.Diagnostico
                     var saiTotal = lancsMes.Where(x => x.Tipo == TipoLancamento.Saida).Sum(x => x.Valor);
 
                     acumuladoHistorico += (entTotal - saiTotal);
+                    acumuladoPuroResultados += resOp;
+
+                    var detalhesLancs = lancsMes.Select(l => new LancamentoDetalheMesDto
+                    {
+                        Id = l.Id,
+                        Data = l.Data,
+                        Descricao = l.Descricao,
+                        Valor = l.Valor,
+                        Tipo = l.Tipo == TipoLancamento.Entrada ? "Entrada" : "Saída",
+                        ContaNome = l.Conta?.Nome ?? "N/A",
+                        CategoriaNome = l.Categoria?.Nome ?? "N/A",
+                        IsTransferencia = l.Categoria?.ParaTransferencia ?? false
+                    }).ToList();
 
                     diagnostico.EvolucaoMensal.Add(new EvolucaoMensalDiagnosticoDto
                     {
@@ -243,8 +257,11 @@ namespace GestorContas.Web.Services.Diagnostico
                         EntradasOperacionais = entOp,
                         SaidasOperacionais = saiOp,
                         ResultadoOperacionalMes = resOp,
+                        SaldoAcumuladoResultadoMes = acumuladoPuroResultados,
                         TransferenciasMes = lancsMes.Where(x => x.Categoria?.ParaTransferencia == true).Sum(x => x.Valor),
-                        SaldoAcumuladoFimMes = acumuladoHistorico
+                        SaldoAcumuladoFimMes = acumuladoHistorico,
+                        DivergenciaSaldo = acumuladoHistorico - acumuladoPuroResultados,
+                        LancamentosMes = detalhesLancs
                     });
 
                     cursor = cursor.AddMonths(1);

@@ -74,8 +74,23 @@ namespace GestorContas.Web.Services.Diagnostico.Dtos
         public decimal EntradasOperacionais { get; set; }
         public decimal SaidasOperacionais { get; set; }
         public decimal ResultadoOperacionalMes { get; set; }
+        public decimal SaldoAcumuladoResultadoMes { get; set; }
         public decimal TransferenciasMes { get; set; }
         public decimal SaldoAcumuladoFimMes { get; set; }
+        public decimal DivergenciaSaldo { get; set; }
+        public List<LancamentoDetalheMesDto> LancamentosMes { get; set; } = new();
+    }
+
+    public class LancamentoDetalheMesDto
+    {
+        public int Id { get; set; }
+        public DateTime Data { get; set; }
+        public string Descricao { get; set; } = string.Empty;
+        public decimal Valor { get; set; }
+        public string Tipo { get; set; } = string.Empty;
+        public string ContaNome { get; set; } = string.Empty;
+        public string CategoriaNome { get; set; } = string.Empty;
+        public bool IsTransferencia { get; set; }
     }
 
     public class PossivelErroSinalDto

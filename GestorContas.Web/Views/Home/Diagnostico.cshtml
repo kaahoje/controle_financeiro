@@ -130,18 +130,30 @@
                                     <th class="text-end">Entradas</th>
                                     <th class="text-end">Saídas</th>
                                     <th class="text-end">Resultado Mês</th>
-                                    <th class="text-end fw-bold">Saldo Fim do Mês</th>
+                                    <th class="text-end font-monospace text-muted" title="Soma pura do Resultado do Mês partindo do Saldo Inicial (sem transferências)">Acumulado Teórico</th>
+                                    <th class="text-end fw-bold" title="Saldo Real de Caixa considerando todas as entradas, saídas e transferências">Saldo Real (Extrato)</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                <tr class="table-info">
+                                    <td class="fw-bold"><i class="bi bi-flag-fill me-1"></i> Saldo Inicial das Contas</td>
+                                    <td class="text-end font-monospace text-muted">-</td>
+                                    <td class="text-end font-monospace text-muted">-</td>
+                                    <td class="text-end font-monospace text-muted">-</td>
+                                    <td class="text-end font-monospace text-muted">R$ @Model.ResumoGeral.SaldoInicialTotalContas.ToString("N2")</td>
+                                    <td class="text-end font-monospace fw-bold text-primary">R$ @Model.ResumoGeral.SaldoInicialTotalContas.ToString("N2")</td>
+                                </tr>
                                 @foreach (var m in Model.EvolucaoMensal)
                                 {
-                                    <tr>
-                                        <td class="fw-semibold">@m.MesAnoLabel</td>
+                                    <tr class="cursor-pointer btn-ver-detalhes-mes" data-mes-ano="@m.MesAnoLabel" data-json='@Html.Raw(System.Text.Json.JsonSerializer.Serialize(m.LancamentosMes))'>
+                                        <td class="fw-semibold text-primary"><i class="bi bi-search me-1 small"></i>@m.MesAnoLabel</td>
                                         <td class="text-end text-success font-monospace">R$ @m.EntradasOperacionais.ToString("N2")</td>
                                         <td class="text-end text-danger font-monospace">R$ @m.SaidasOperacionais.ToString("N2")</td>
                                         <td class="text-end font-monospace fw-bold @(m.ResultadoOperacionalMes >= 0 ? "text-success" : "text-danger")">
                                             R$ @m.ResultadoOperacionalMes.ToString("N2")
+                                        </td>
+                                        <td class="text-end font-monospace text-secondary">
+                                            R$ @m.SaldoAcumuladoResultadoMes.ToString("N2")
                                         </td>
                                         <td class="text-end font-monospace fw-bold @(m.SaldoAcumuladoFimMes >= 0 ? "text-primary" : "text-danger")">
                                             R$ @m.SaldoAcumuladoFimMes.ToString("N2")
@@ -303,3 +315,127 @@
 
     </div>
 </div>
+
+<!-- Modal Detalhes do Mês -->
+<div class="modal fade" id="modalDetalhesMes" tabindex="-1" aria-labelledby="modalDetalhesMesLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title fs-6 fw-bold" id="modalDetalhesMesLabel">
+                    <i class="bi bi-calendar-event me-2"></i> Lançamentos e Transferências de <span id="modalMesTitulo"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 bg-light border-bottom d-flex gap-2">
+                    <input type="text" id="filtroModalTexto" class="form-control form-control-sm" placeholder="Filtrar por descrição, conta ou categoria...">
+                    <select id="filtroModalTipo" class="form-select form-select-sm" style="max-width: 200px;">
+                        <option value="">Todos os tipos</option>
+                        <option value="Entrada">Entradas</option>
+                        <option value="Saída">Saídas</option>
+                        <option value="Transferência">Apenas Transferências</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#ID</th>
+                                <th>Data</th>
+                                <th>Conta</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Tipo</th>
+                                <th class="text-end">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDetalhesMes">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        let lancamentosAtuais = [];
+
+        document.querySelectorAll('.btn-ver-detalhes-mes').forEach(row => {
+            row.addEventListener('click', function () {
+                const mesAno = this.getAttribute('data-mes-ano');
+                const rawJson = this.getAttribute('data-json');
+                
+                try {
+                    lancamentosAtuais = JSON.parse(rawJson);
+                } catch (e) {
+                    lancamentosAtuais = [];
+                }
+
+                document.getElementById('modalMesTitulo').innerText = mesAno;
+                renderizarLancamentosModal();
+                
+                const modal = new bootstrap.Modal(document.getElementById('modalDetalhesMes'));
+                modal.show();
+            });
+        });
+
+        document.getElementById('filtroModalTexto').addEventListener('input', renderizarLancamentosModal);
+        document.getElementById('filtroModalTipo').addEventListener('change', renderizarLancamentosModal);
+
+        function renderizarLancamentosModal() {
+            const tbody = document.getElementById('tbodyDetalhesMes');
+            const term = document.getElementById('filtroModalTexto').value.toLowerCase();
+            const tipoFiltro = document.getElementById('filtroModalTipo').value;
+
+            tbody.innerHTML = '';
+
+            const filtrados = lancamentosAtuais.filter(l => {
+                const textMatch = !term || 
+                    (l.Descricao && l.Descricao.toLowerCase().includes(term)) ||
+                    (l.ContaNome && l.ContaNome.toLowerCase().includes(term)) ||
+                    (l.CategoriaNome && l.CategoriaNome.toLowerCase().includes(term));
+
+                let tipoMatch = true;
+                if (tipoFiltro === 'Entrada') tipoMatch = l.Tipo === 'Entrada';
+                else if (tipoFiltro === 'Saída') tipoMatch = l.Tipo === 'Saída';
+                else if (tipoFiltro === 'Transferência') tipoMatch = l.IsTransferencia;
+
+                return textMatch && tipoMatch;
+            });
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted p-4">Nenhum lançamento encontrado para os filtros selecionados.</td></tr>';
+                return;
+            }
+
+            filtrados.forEach(l => {
+                const tr = document.createElement('tr');
+                const dataFmt = l.Data ? l.Data.split('T')[0].split('-').reverse().join('/') : '';
+                const valorFmt = l.Valor ? l.Valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '0,00';
+                
+                tr.innerHTML = `
+                    <td class="small text-muted font-monospace">#${l.Id}</td>
+                    <td class="small">${dataFmt}</td>
+                    <td class="fw-semibold small">${l.ContaNome}</td>
+                    <td>${l.Descricao}</td>
+                    <td>
+                        <span class="badge ${l.IsTransferencia ? 'bg-info text-dark' : 'bg-light text-dark border'}">
+                            ${l.CategoriaNome}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${l.Tipo === 'Entrada' ? 'bg-success' : 'bg-danger'}">
+                            ${l.Tipo}
+                        </span>
+                    </td>
+                    <td class="text-end font-monospace fw-bold ${l.Tipo === 'Entrada' ? 'text-success' : 'text-danger'}">
+                        R$ ${valorFmt}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    });
+</script>
