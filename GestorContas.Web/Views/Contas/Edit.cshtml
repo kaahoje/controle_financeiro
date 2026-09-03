@@ -31,10 +31,16 @@
                         <label asp-for="Descricao">Descrição</label>
                     </div>
                 </div>
-                <div class="col-12">
-                    <div class="form-check form-switch">
+                <div class="col-md-6">
+                    <div class="form-check form-switch mt-2">
                         <input asp-for="Ativa" class="form-check-input" type="checkbox" id="modal_edit_acc_ativa" />
                         <label class="form-check-label" for="modal_edit_acc_ativa">Conta Ativa</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check form-switch mt-2">
+                        <input asp-for="ConsiderarNoDiagnostico" class="form-check-input" type="checkbox" id="modal_edit_acc_diag" />
+                        <label class="form-check-label" for="modal_edit_acc_diag">Considerar no Diagnóstico</label>
                     </div>
                 </div>
             </div>

@@ -13,6 +13,7 @@ builder.Services.AddDbContext<GestorContas.Web.Data.AppDbContext>(options =>
 // Add Conciliação Services & Strategy (DDD)
 builder.Services.AddScoped<GestorContas.Web.Services.Conciliacao.IConciliacaoExtratoStrategy, GestorContas.Web.Services.Conciliacao.MatchExatoConciliacaoStrategy>();
 builder.Services.AddScoped<GestorContas.Web.Services.Conciliacao.IConciliacaoBancariaService, GestorContas.Web.Services.Conciliacao.ConciliacaoBancariaService>();
+builder.Services.AddScoped<GestorContas.Web.Services.Diagnostico.IDiagnosticoFinanceiroService, GestorContas.Web.Services.Diagnostico.DiagnosticoFinanceiroService>();
 
 // Add session support
 builder.Services.AddSession(options =>
@@ -47,7 +48,7 @@ using (var scope = app.Services.CreateScope())
         var context = services.GetRequiredService<GestorContas.Web.Data.AppDbContext>();
         context.Database.EnsureCreated();
 
-        // Garantir inclusão da nova coluna DescricaoNoExtrato se ainda não existir no SQLite existente
+        // Garantir inclusão das novas colunas se ainda não existirem no SQLite existente
         try
         {
             context.Database.ExecuteSqlRaw(@"
@@ -58,6 +59,19 @@ using (var scope = app.Services.CreateScope())
         {
             context.Database.ExecuteSqlRaw(@"
                 ALTER TABLE Lancamentos ADD COLUMN DescricaoNoExtrato TEXT;
+            ");
+        }
+
+        try
+        {
+            context.Database.ExecuteSqlRaw(@"
+                SELECT ConsiderarNoDiagnostico FROM Contas LIMIT 1;
+            ");
+        }
+        catch
+        {
+            context.Database.ExecuteSqlRaw(@"
+                ALTER TABLE Contas ADD COLUMN ConsiderarNoDiagnostico INTEGER NOT NULL DEFAULT 1;
             ");
         }
     }

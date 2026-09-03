@@ -12,11 +12,26 @@ public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private readonly AppDbContext _context;
+    private readonly GestorContas.Web.Services.Diagnostico.IDiagnosticoFinanceiroService _diagnosticoService;
 
-    public HomeController(ILogger<HomeController> logger, AppDbContext context)
+    public HomeController(ILogger<HomeController> logger, AppDbContext context, GestorContas.Web.Services.Diagnostico.IDiagnosticoFinanceiroService diagnosticoService)
     {
         _logger = logger;
         _context = context;
+        _diagnosticoService = diagnosticoService;
+    }
+
+    public async Task<IActionResult> Diagnostico()
+    {
+        var diagnostico = await _diagnosticoService.GerarDiagnosticoCompletoAsync();
+        return View(diagnostico);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DiagnosticoJson()
+    {
+        var diagnostico = await _diagnosticoService.GerarDiagnosticoCompletoAsync();
+        return Json(diagnostico);
     }
 
     public async Task<IActionResult> Index(int? mes, int? ano)

@@ -40,7 +40,7 @@ namespace GestorContas.Web.Controllers
         // POST: Contas/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nome,Descricao,SaldoInicial,Ativa")] Conta conta)
+        public async Task<IActionResult> Create([Bind("Id,Nome,Descricao,SaldoInicial,Ativa,ConsiderarNoDiagnostico")] Conta conta)
         {
             if (ModelState.IsValid)
             {
@@ -83,7 +83,7 @@ namespace GestorContas.Web.Controllers
         // POST: Contas/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Descricao,SaldoInicial,Ativa")] Conta conta)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Descricao,SaldoInicial,Ativa,ConsiderarNoDiagnostico")] Conta conta)
         {
             if (id != conta.Id)
             {

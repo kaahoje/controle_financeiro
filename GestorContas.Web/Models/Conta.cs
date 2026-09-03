@@ -25,6 +25,9 @@ namespace GestorContas.Web.Models
         [Display(Name = "Ativa")]
         public bool Ativa { get; set; } = true;
 
+        [Display(Name = "Considerar no diagnóstico")]
+        public bool ConsiderarNoDiagnostico { get; set; } = true;
+
         // Navigation property
         public ICollection<Lancamento>? Lancamentos { get; set; }
     }

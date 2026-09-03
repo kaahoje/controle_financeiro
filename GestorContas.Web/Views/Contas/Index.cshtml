@@ -55,6 +55,7 @@
                                     <th>Nome</th>
                                     <th>Descrição</th>
                                     <th class="text-end">Saldo Inicial</th>
+                                    <th class="text-center">Diagnóstico</th>
                                     <th class="text-center">Status</th>
                                     <th class="text-center">Ações</th>
                                 </tr>
@@ -68,6 +69,20 @@
                                         </td>
                                         <td class="text-muted">@(item.Descricao ?? "-")</td>
                                         <td class="text-end fw-bold">@item.SaldoInicial.ToString("C")</td>
+                                        <td class="text-center">
+                                            @if (item.ConsiderarNoDiagnostico)
+                                            {
+                                                <span class="badge bg-info text-dark" title="Incluso no cálculo do diagnóstico">
+                                                    <i class="bi bi-check-lg"></i> Sim
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary" title="Ignorado no diagnóstico financeiro">
+                                                    <i class="bi bi-eye-slash"></i> Não
+                                                </span>
+                                            }
+                                        </td>
                                         <td class="text-center">
                                             @if (item.Ativa)
                                             {

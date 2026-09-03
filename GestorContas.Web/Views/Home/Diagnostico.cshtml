@@ -1,0 +1,305 @@
+@model GestorContas.Web.Services.Diagnostico.Dtos.DiagnosticoFinanceiroDto
+@{
+    ViewData["Title"] = "Diagnóstico e Auditoria Financeira";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="h3 fw-bold text-dark mb-0 d-flex align-items-center">
+                <i class="bi bi-search-heart text-primary me-2 fs-3"></i> Diagnóstico & Auditoria Financeira
+            </h2>
+            <p class="text-muted mb-0 small">Análise profunda de dados históricos, integridade de saldos, transferências e duplicidades.</p>
+        </div>
+        <div>
+            <a href="@Url.Action("DiagnosticoJson", "Home")" target="_blank" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-filetype-json me-1"></i> Exportar Dados JSON
+            </a>
+            <a href="@Url.Action("Index", "Home")" class="btn btn-primary btn-sm ms-2">
+                <i class="bi bi-house-door me-1"></i> Voltar à Home
+            </a>
+        </div>
+    </div>
+
+    <!-- CARDS RESUMO EXECUTIVO -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white h-100">
+                <div class="card-body">
+                    <h6 class="text-white-50 text-uppercase small font-monospace">Saldo Real Acumulado</h6>
+                    <h3 class="fw-bold mb-0">R$ @Model.ResumoGeral.SaldoAtualTotalSistema.ToString("N2")</h3>
+                    <small class="text-white-50">Soma de todas as contas ativas</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white h-100">
+                <div class="card-body">
+                    <h6 class="text-white-50 text-uppercase small font-monospace">Resultado Operacional Histórico</h6>
+                    <h3 class="fw-bold mb-0">R$ @Model.ResumoGeral.ResultadoRealAcumulado.ToString("N2")</h3>
+                    <small class="text-white-50">Entradas - Saídas (Excl. Transferências)</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm @(Model.ResumoGeral.TotalDuplicadosIdentificados > 0 ? "bg-warning text-dark" : "bg-light text-secondary") h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase small font-monospace @(Model.ResumoGeral.TotalDuplicadosIdentificados > 0 ? "text-dark-50" : "text-muted")">Duplicidades Suspeitas</h6>
+                    <h3 class="fw-bold mb-0">@Model.ResumoGeral.TotalDuplicadosIdentificados registros</h3>
+                    <small>Impacto em caixa: R$ @Model.ResumoGeral.ValorTotalDuplicados.ToString("N2")</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm @(Model.ResumoGeral.DesbalancoTransferencias != 0 || Model.TransferenciasAtipicas.Any() ? "bg-danger text-white" : "bg-info text-white") h-100">
+                <div class="card-body">
+                    <h6 class="text-white-50 text-uppercase small font-monospace">Desbalanço de Transferências</h6>
+                    <h3 class="fw-bold mb-0">R$ @Model.ResumoGeral.DesbalancoTransferencias.ToString("N2")</h3>
+                    <small class="text-white-50">@Model.TransferenciasAtipicas.Count transferências sem par correspondente</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEÇÕES DE ANÁLISE -->
+    <div class="row g-4">
+
+        <!-- 1. RESUMO POR CONTA E SALDO INICIAL -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center">
+                        <i class="bi bi-wallet2 text-primary me-2"></i> 1. Balanço das Contas & Saldo Inicial
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Conta</th>
+                                    <th class="text-end">Saldo Inicial</th>
+                                    <th class="text-end">Entradas (Ops)</th>
+                                    <th class="text-end">Saídas (Ops)</th>
+                                    <th class="text-end">Transf. Entradas</th>
+                                    <th class="text-end">Transf. Saídas</th>
+                                    <th class="text-end fw-bold">Saldo Calculado Atual</th>
+                                    <th>Primeiro Lançamento</th>
+                                    <th>Último Lançamento</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var c in Model.DiagnosticoContas)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@c.NomeConta</td>
+                                        <td class="text-end font-monospace">R$ @c.SaldoInicial.ToString("N2")</td>
+                                        <td class="text-end text-success font-monospace">+R$ @c.TotalEntradas.ToString("N2")</td>
+                                        <td class="text-end text-danger font-monospace">-R$ @c.TotalSaidas.ToString("N2")</td>
+                                        <td class="text-end text-info font-monospace">+R$ @c.TotalTransferenciasRecebidas.ToString("N2")</td>
+                                        <td class="text-end text-warning font-monospace">-R$ @c.TotalTransferenciasEnviadas.ToString("N2")</td>
+                                        <td class="text-end fw-bold font-monospace fs-6 @(c.SaldoAtualCalculado >= 0 ? "text-primary" : "text-danger")">R$ @c.SaldoAtualCalculado.ToString("N2")</td>
+                                        <td class="small text-muted">@(c.DataPrimeiroLancamento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                        <td class="small text-muted">@(c.DataUltimoLancamento?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. ANÁLISE DE EVOLUÇÃO MENSAL E CAIXA ACUMULADO -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center">
+                        <i class="bi bi-graph-up-arrow text-success me-2"></i> 2. Evolução do Saldo Acumulado Mês a Mês
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped align-middle mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th>Mês/Ano</th>
+                                    <th class="text-end">Entradas</th>
+                                    <th class="text-end">Saídas</th>
+                                    <th class="text-end">Resultado Mês</th>
+                                    <th class="text-end fw-bold">Saldo Fim do Mês</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in Model.EvolucaoMensal)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@m.MesAnoLabel</td>
+                                        <td class="text-end text-success font-monospace">R$ @m.EntradasOperacionais.ToString("N2")</td>
+                                        <td class="text-end text-danger font-monospace">R$ @m.SaidasOperacionais.ToString("N2")</td>
+                                        <td class="text-end font-monospace fw-bold @(m.ResultadoOperacionalMes >= 0 ? "text-success" : "text-danger")">
+                                            R$ @m.ResultadoOperacionalMes.ToString("N2")
+                                        </td>
+                                        <td class="text-end font-monospace fw-bold @(m.SaldoAcumuladoFimMes >= 0 ? "text-primary" : "text-danger")">
+                                            R$ @m.SaldoAcumuladoFimMes.ToString("N2")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. SUSPEITAS DE DUPLICIDADE HISTÓRICA -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i> 3. Registros Duplicados na Base (@Model.DuplicadosSuspeitos.Count)
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (!Model.DuplicadosSuspeitos.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-shield-check fs-1 text-success"></i>
+                            <p class="mb-0 mt-2">Nenhum registro duplicado foi identificado!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0 align-middle">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Conta</th>
+                                        <th>Valor</th>
+                                        <th>Qtd</th>
+                                        <th>IDs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var d in Model.DuplicadosSuspeitos)
+                                    {
+                                        <tr>
+                                            <td class="small">@d.Data.ToString("dd/MM/yyyy")</td>
+                                            <td class="small">@d.ContaNome</td>
+                                            <td class="font-monospace fw-bold @(d.Tipo == "Entrada" ? "text-success" : "text-danger")">R$ @d.Valor.ToString("N2")</td>
+                                            <td><span class="badge bg-warning text-dark">@d.QuantidadeDuplicados x</span></td>
+                                            <td class="small text-muted font-monospace">#@string.Join(", #", d.LancamentosIds)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. ALERTAS DE ERRO DE SINAL / TIPO -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center">
+                        <i class="bi bi-arrow-left-right text-danger me-2"></i> 4. Suspeitas de Inversão de Sinal / Tipo (@Model.ErrosSinalOuTipo.Count)
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (!Model.ErrosSinalOuTipo.Any())
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle fs-3 text-success"></i>
+                            <p class="mb-0 mt-1">Nenhuma divergência óbvia de palavras-chave x tipo.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Data</th>
+                                        <th>Descrição</th>
+                                        <th>Tipo Atual</th>
+                                        <th>Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var e in Model.ErrosSinalOuTipo)
+                                    {
+                                        <tr>
+                                            <td>#@e.Id</td>
+                                            <td class="small">@e.Data.ToString("dd/MM/yyyy")</td>
+                                            <td class="small">@e.Descricao</td>
+                                            <td><span class="badge @(e.Tipo == "Entrada" ? "bg-success" : "bg-danger")">@e.Tipo</span></td>
+                                            <td class="font-monospace fw-bold">R$ @e.Valor.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. TRANSFERÊNCIAS DESBALANCEADAS -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title fw-bold text-dark mb-0 d-flex align-items-center">
+                        <i class="bi bi-box-arrow-up-right text-info me-2"></i> 5. Transferências Sem Contrapartida (@Model.TransferenciasAtipicas.Count)
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (!Model.TransferenciasAtipicas.Any())
+                    {
+                        <div class="p-4 text-center text-muted">
+                            <i class="bi bi-check-circle fs-3 text-success"></i>
+                            <p class="mb-0 mt-1">Todas as transferências possuem par perfeito entre contas!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive" style="max-height: 350px; overflow-y: auto;">
+                            <table class="table table-sm table-hover mb-0">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Data</th>
+                                        <th>Conta</th>
+                                        <th>Descrição</th>
+                                        <th>Tipo</th>
+                                        <th>Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var t in Model.TransferenciasAtipicas)
+                                    {
+                                        <tr>
+                                            <td>#@t.Id</td>
+                                            <td class="small">@t.Data.ToString("dd/MM/yyyy")</td>
+                                            <td class="small">@t.ContaNome</td>
+                                            <td class="small">@t.Descricao</td>
+                                            <td><span class="badge @(t.Tipo == "Entrada" ? "bg-success" : "bg-danger")">@t.Tipo</span></td>
+                                            <td class="font-monospace fw-bold">R$ @t.Valor.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
