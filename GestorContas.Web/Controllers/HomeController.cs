@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using GestorContas.Web.Models;
 using GestorContas.Web.Models.ViewModels;
@@ -13,12 +14,68 @@ public class HomeController : Controller
     private readonly ILogger<HomeController> _logger;
     private readonly AppDbContext _context;
     private readonly GestorContas.Web.Services.Diagnostico.IDiagnosticoFinanceiroService _diagnosticoService;
+    private readonly IConfiguration _configuration;
 
-    public HomeController(ILogger<HomeController> logger, AppDbContext context, GestorContas.Web.Services.Diagnostico.IDiagnosticoFinanceiroService diagnosticoService)
+    public HomeController(
+        ILogger<HomeController> logger,
+        AppDbContext context,
+        GestorContas.Web.Services.Diagnostico.IDiagnosticoFinanceiroService diagnosticoService,
+        IConfiguration configuration)
     {
         _logger = logger;
         _context = context;
         _diagnosticoService = diagnosticoService;
+        _configuration = configuration;
+    }
+
+    [HttpPost]
+    public IActionResult FazerBackup()
+    {
+        try
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return Json(new { success = false, message = "String de conexão não configurada." });
+            }
+
+            var csBuilder = new SqliteConnectionStringBuilder(connectionString);
+            var sourcePath = csBuilder.DataSource;
+
+            if (string.IsNullOrWhiteSpace(sourcePath) || !System.IO.File.Exists(sourcePath))
+            {
+                return Json(new { success = false, message = "Arquivo do banco de dados não encontrado." });
+            }
+
+            var directory = Path.GetDirectoryName(sourcePath) ?? AppContext.BaseDirectory;
+            var fileNameWithoutExt = Path.GetFileNameWithoutExtension(sourcePath);
+            var extension = Path.GetExtension(sourcePath);
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var backupFileName = $"{fileNameWithoutExt}_{timestamp}{extension}";
+            var backupPath = Path.Combine(directory, backupFileName);
+
+            using (var source = new SqliteConnection(connectionString))
+            using (var destination = new SqliteConnection($"Data Source={backupPath}"))
+            {
+                source.Open();
+                destination.Open();
+                source.BackupDatabase(destination);
+                SqliteConnection.ClearPool(destination);
+            }
+
+            return Json(new
+            {
+                success = true,
+                fileName = backupFileName,
+                backupPath,
+                message = $"Backup criado com sucesso: {backupFileName}"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao realizar backup do banco de dados.");
+            return Json(new { success = false, message = $"Erro ao realizar backup: {ex.Message}" });
+        }
     }
 
     public async Task<IActionResult> Diagnostico()

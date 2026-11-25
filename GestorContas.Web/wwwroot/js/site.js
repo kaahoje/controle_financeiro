@@ -177,6 +177,29 @@ $(document).ready(function () {
 
     initAutocomplete('[name="Descricao"]', '/Lancamentos/GetDescricoes');
     initMasks();
+
+    $('#btnBackupDb').on('click', function () {
+        const $btn = $(this);
+        const originalHtml = $btn.html();
+
+        $btn.prop('disabled', true)
+            .html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Copiando...');
+
+        $.post('/Home/FazerBackup')
+            .done(function (response) {
+                if (response && response.success) {
+                    showToast(response.message, 'Backup Concluído', 'success');
+                } else {
+                    showToast(response?.message || 'Erro ao realizar backup do banco de dados.', 'Erro', 'danger');
+                }
+            })
+            .fail(function () {
+                showToast('Falha na comunicação ao tentar realizar o backup.', 'Erro', 'danger');
+            })
+            .always(function () {
+                $btn.prop('disabled', false).html(originalHtml);
+            });
+    });
 });
 
 function initMasks() {

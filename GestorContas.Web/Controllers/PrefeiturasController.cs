@@ -22,11 +22,11 @@ namespace GestorContas.Web.Controllers
         public async Task<IActionResult> Index(int? mes, int? ano, string? busca, bool? tipo)
         {
             var dataAtual = DateTime.Today;
-            var mesAtual = mes ?? dataAtual.Month;
-            var anoAtual = ano ?? dataAtual.Year;
+            var mesSelecionado = mes ?? dataAtual.Month;
+            var anoSelecionado = ano ?? dataAtual.Year;
 
-            ViewBag.MesSelecionado = mesAtual;
-            ViewBag.AnoSelecionado = anoAtual;
+            ViewBag.MesSelecionado = mesSelecionado;
+            ViewBag.AnoSelecionado = anoSelecionado;
             ViewBag.Busca = busca;
             ViewBag.Tipo = tipo;
             
@@ -38,27 +38,48 @@ namespace GestorContas.Web.Controllers
             // Base query for all calculations
             var baseQuery = _context.Prefeituras.AsNoTracking();
 
-            // 1. Totalizadores Cumulativos (Até o fim do mês selecionado)
-            var dataCorte = new DateTime(anoAtual, mesAtual, 1).AddMonths(1);
-            var queryTotalizador = baseQuery.Where(p => p.VencimentoDaParcela < dataCorte);
-            
+            // 1. Totalizadores Cumulativos (Até o fim do período selecionado)
+            var queryTotalizador = baseQuery.AsQueryable();
+
+            if (anoSelecionado > 0 && mesSelecionado > 0)
+            {
+                var dataCorte = new DateTime(anoSelecionado, mesSelecionado, 1).AddMonths(1);
+                queryTotalizador = queryTotalizador.Where(p => p.VencimentoDaParcela < dataCorte);
+            }
+            else if (anoSelecionado > 0)
+            {
+                var dataCorte = new DateTime(anoSelecionado + 1, 1, 1);
+                queryTotalizador = queryTotalizador.Where(p => p.VencimentoDaParcela < dataCorte);
+            }
+
             ViewBag.TotalRecebimentos = (decimal)await queryTotalizador.Where(p => p.Entrada == true).SumAsync(p => (double)(p.Valor ?? 0));
             ViewBag.TotalPagamentos = (decimal)await queryTotalizador.Where(p => p.Entrada == false).SumAsync(p => (double)(p.Valor ?? 0));
             ViewBag.SaldoMes = (decimal)ViewBag.TotalRecebimentos - (decimal)ViewBag.TotalPagamentos;
 
-            // 2. Query do Grid (Filtrada pelo mês selecionado e filtros de busca)
+            // 2. Query do Grid (Filtrada pelo mês/ano selecionados e filtros de busca)
             var gridQuery = baseQuery.AsQueryable();
 
-            if (mes.HasValue || ano.HasValue || !IsAjaxRequest)
+            if (mesSelecionado > 0 && anoSelecionado > 0)
             {
                 gridQuery = gridQuery.Where(p => p.VencimentoDaParcela.HasValue && 
-                                           p.VencimentoDaParcela.Value.Month == mesAtual && 
-                                           p.VencimentoDaParcela.Value.Year == anoAtual);
+                                           p.VencimentoDaParcela.Value.Month == mesSelecionado && 
+                                           p.VencimentoDaParcela.Value.Year == anoSelecionado);
+            }
+            else if (mesSelecionado > 0)
+            {
+                gridQuery = gridQuery.Where(p => p.VencimentoDaParcela.HasValue && 
+                                           p.VencimentoDaParcela.Value.Month == mesSelecionado);
+            }
+            else if (anoSelecionado > 0)
+            {
+                gridQuery = gridQuery.Where(p => p.VencimentoDaParcela.HasValue && 
+                                           p.VencimentoDaParcela.Value.Year == anoSelecionado);
             }
 
-            if (!string.IsNullOrEmpty(busca))
+            if (!string.IsNullOrWhiteSpace(busca))
             {
-                gridQuery = gridQuery.Where(p => p.Descricao != null && p.Descricao.Contains(busca));
+                var termo = busca.Trim();
+                gridQuery = gridQuery.Where(p => p.Descricao != null && EF.Functions.Like(p.Descricao, $"%{termo}%"));
             }
 
             if (tipo.HasValue)

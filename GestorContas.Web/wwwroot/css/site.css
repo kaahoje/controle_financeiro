@@ -186,6 +186,17 @@ body {
     vertical-align: middle;
 }
 
+.btn-db-backup {
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.4;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
 /* Page Header & Minimalist Design */
 .page-header {
     background-color: transparent;
